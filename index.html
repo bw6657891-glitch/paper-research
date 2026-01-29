@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FF80Q31160"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-FF80Q31160');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纸上智绘 - 交互式非遗博物馆与调研展示</title>
+    <!-- 资源引入 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', 'Noto Serif SC', serif; background-color: #fcfaf7; }
+        
+        .museum-tab-active { 
+            background-color: #8b2b22; 
+            color: white; 
+            transform: scale(1.05);
+        }
+        
+        .history-card {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .paper-texture {
+            background-image: url('https://www.transparenttextures.com/patterns/handmade-paper.png');
+        }
+
+        /* 地图交互样式 */
+        .province {
+            fill: #e5e7eb;
+            stroke: #fff;
+            stroke-width: 0.8;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .province:hover {
+            fill: #d1d5db;
+        }
+        .province-active {
+            fill: #8b2b22 !important;
+        }
+        .province-has-data {
+            fill: #f3e8e7;
+        }
+
+        /* 图片样式优化 */
+        .image-container {
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .process-img {
+            transition: transform 0.5s ease;
+        }
+
+        .process-img:hover {
+            transform: scale(1.05);
+        }
+
+        .era-image {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        /* 数据分析页面新增样式 */
+        .serif { font-family: 'Noto Serif SC', serif; }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.9); 
+            border: 1px solid #e5e1da;
+            box-shadow: 0 4px 20px rgba(139, 43, 34, 0.05);
+        }
+        .accent-text { color: #8b2b22; }
+        .accent-bg { background-color: #8b2b22; }
+
+        /* 核心样式：确保地图和交互点完美重合 */
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        /* 你的SVG图片 */
+        .base-map {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: grayscale(40%); /* 可选：轻微去色突出红点 */
+        }
+
+        /* 透明交互层：覆盖在图片正上方 */
+        .overlay-layer {
+            position: absolute;
+            top: 1rem; bottom: 1rem; left: 1rem; right: 1rem;
+            pointer-events: none; /* 穿透层 */
+        }
+
+        /* 交互热点按钮 */
+        .map-hotspot {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #8b2b22;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto; /* 恢复点击 */
+            transform: translate(-50%, -50%);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 10px rgba(139, 43, 34, 0.4);
+        }
+
+        .map-hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.6);
+            background: #e63946;
+            z-index: 50;
+        }
+
+        /* 呼吸动画 */
+        .map-hotspot::before {
+            content: '';
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            background: #8b2b22;
+            opacity: 0.6;
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ping {
+            75%, 100% { transform: scale(3); opacity: 0; }
+        }
+
+        /* 自定义滚动条 */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b border-stone-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+            <span class="text-2xl font-black text-[#8b2b22] tracking-tighter">纸上智绘·古法造纸非遗微博物馆</span>
+            <div class="hidden md:flex space-x-8 text-[11px] font-bold tracking-[0.2em] uppercase">
+                <a href="#home" class="hover:text-amber-700">首页</a>
+                <a href="#museum" class="hover:text-amber-700">纸史馆</a>
+                <a href="#map" class="hover:text-amber-700">分布厅</a>
+                <a href="#process" class="hover:text-amber-700">技艺厅</a>
+                <a href="#data" class="hover:text-amber-700">数研室</a>
+                <a href="#tangao-case" class="hover:text-amber-700">棠岙竹纸</a>
+                <a href="#lab" class="hover:text-amber-700">云染墨图实验台</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 首页 (Hero) -->
+    <section id="home" class="h-screen flex flex-col items-center justify-center text-center px-4 bg-paper-texture">
+        <div class="mb-8 inline-block px-4 py-1.5 bg-red-50 rounded-full border border-red-100 text-[#8b2b22] text-[10px] font-bold tracking-[0.3em] uppercase">
+            古法造纸类非物质文化遗产的数字化转型研究
+        </div>
+        <h1 class="text-5xl md:text-8xl font-black mb-8 text-stone-900 tracking-tighter">一纸千年的<br>数字新生</h1>
+        <p class="max-w-xl text-lg text-slate-500 mb-12 font-light leading-relaxed">
+            从蔡伦的草木纤维，到 AI 的像素重构<br>我们在此记录古法造纸的历史脉络与现代调研发现
+        </p>
+        <div class="flex gap-6">
+            <a href="#museum" class="px-8 py-3 bg-[#8b2b22] text-white rounded-full font-bold text-sm hover:bg-black transition-all">进入博物馆</a>
+            <a href="#map" class="px-8 py-3 border border-stone-300 rounded-full font-bold text-sm hover:bg-white transition-all">产地分布</a>
+            <a href="#data" class="px-8 py-3 border border-stone-300 rounded-full font-bold text-sm hover:bg-white transition-all">调研数据</a>
+            <a href="#tangao-case" class="px-8 py-3 border border-stone-300 rounded-full font-bold text-sm hover:bg-white transition-all">棠岙竹纸</a>
+            <a href="#lab" class="px-8 py-3 border border-stone-300 rounded-full font-bold text-sm hover:bg-white transition-all">定制纸画</a>
+        </div>
+    </section>
+
+    <!-- 微型线上博物馆 -->
+    <section id="museum" class="py-32 bg-stone-100 border-y border-stone-200">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+                <div class="max-w-xl">
+                    <h2 class="text-4xl font-black text-stone-900 mb-4">纸史溯源 · 造纸术发展沿革</h2>
+                    <p class="text-stone-500 text-sm leading-relaxed">穿越两千年宏伟历史，见证中国造纸术从萌芽到巅峰的历代技术节点</p>
+                </div>
+                <div class="flex bg-white p-1.5 rounded-full shadow-inner border border-stone-200 overflow-x-auto">
+                    <button onclick="switchEra('han')" id="era-han" class="era-btn museum-tab-active px-6 py-2 rounded-full text-xs font-bold transition-all">西汉/东汉</button>
+                    <button onclick="switchEra('tang')" id="era-tang" class="era-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">隋唐</button>
+                    <button onclick="switchEra('song')" id="era-song" class="era-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">宋元</button>
+                    <button onclick="switchEra('ming')" id="era-ming" class="era-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">明清/现代</button>
+                </div>
+            </div>
+
+            <div id="museum-display" class="bg-white rounded-[2rem] shadow-2xl p-8 md:p-16 relative overflow-hidden history-card">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <div class="space-y-8">
+                        <div>
+                            <span id="era-tag" class="text-[10px] font-black text-[#8b2b22] uppercase tracking-[0.3em]">公元前202年  – 公元220年</span>
+                            <h3 id="era-title" class="text-4xl font-bold mt-4 mb-6">蔡侯纸的诞生</h3>
+                            <p id="era-desc" class="text-slate-600 leading-loose">西汉时期已有麻质纸，但质地粗糙。元兴元年（公元105年）蔡伦总结前人经验，改用树皮、麻头、敝布、鱼网等原料造纸，开启了廉价书写时代。蔡伦将造纸的方法写成奏折，连同纸张呈献皇帝。汉和帝便诏令天下朝廷内外使用并推广，朝廷各官署、全国各地都视作奇迹。九年后，蔡伦被封为"龙亭侯"，食邑300户。由于在全国各地逐步推行的新造纸方法是蔡伦发明的，人们便把这种纸都称为蔡侯纸。蔡伦改进的造纸术沿着丝绸之路经过中亚、西欧向整个世界传播，为世界文明的传承和发展起着不可磨灭的贡献。</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                                <p class="text-[10px] text-stone-400 font-bold mb-2 uppercase">核心原料</p>
+                                <p id="era-material" class="text-sm font-bold">树皮、旧鱼网</p>
+                            </div>
+                            <div class="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                                <p class="text-[10px] text-stone-400 font-bold mb-2 uppercase">技术贡献</p>
+                                <p id="era-tech" class="text-sm font-bold">扩充廉价纤维源</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div class="aspect-[4/5] bg-stone-50 rounded-3xl overflow-hidden flex items-center justify-center p-4 border border-stone-200 image-container">
+                            <img id="era-image" src="蔡侯.png" alt="蔡侯纸" class="era-image">
+                        </div>
+                        <p class="text-center text-xs text-stone-500 mt-2 italic">古代造纸术的发展沿革</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 非遗造纸分布地图 -->
+    <section id="map" class="py-32 bg-stone-50">
+        <div class="max-w-7xl mx-auto px-4 md:px-10">
+            <div class="mb-8 border-l-4 border-[#8b2b22] pl-4">
+                <h2 class="text-3xl font-bold">非遗造纸分布</h2>
+                <p class="text-stone-500 text-sm mt-1">点击地图红点，查看各地区古法造纸技艺的介绍</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- 左侧：地图区域 -->
+                <div class="lg:col-span-8">
+                    <div class="map-wrapper">
+                        <!-- 这里加载你下载好的本地 SVG 文件 -->
+                        <img src="china-map.svg" alt="古法造纸类非遗分布地图" class="base-map" id="mapImg" 
+                             onerror="this.src='https://placehold.co/800x600?text=Please+Place+china-map.svg+In+Folder'">
+                        
+                        <!-- 交互点定位层：请根据你的SVG形状调整 top/left 的百分比 -->
+                        <div class="overlay-layer">
+                            <!-- 安徽 -->
+                            <div class="map-hotspot" style="top: 45%; left: 75%;" onclick="loadProvince('安徽省')"></div>
+                            <!-- 浙江 -->
+                            <div class="map-hotspot" style="top: 48%; left: 81%;" onclick="loadProvince('浙江省')"></div>
+                            <!-- 贵州 -->
+                            <div class="map-hotspot" style="top: 54%; left: 58%;" onclick="loadProvince('贵州省')"></div>
+                            <!-- 云南 -->
+                            <div class="map-hotspot" style="top: 58%; left: 48%;" onclick="loadProvince('云南省')"></div>
+                            <!-- 西藏 -->
+                            <div class="map-hotspot" style="top: 47%; left: 35%;" onclick="loadProvince('西藏自治区')"></div>
+                            <!-- 四川 -->
+                            <div class="map-hotspot" style="top: 47%; left: 49%;" onclick="loadProvince('四川省')"></div>
+                            <!-- 甘肃 -->
+                            <div class="map-hotspot" style="top: 38%; left: 54%;" onclick="loadProvince('甘肃省')"></div>
+                            <!-- 陕西 -->
+                            <div class="map-hotspot" style="top: 40%; left: 60%;" onclick="loadProvince('陕西省')"></div>
+                            <!-- 湖南 -->
+                            <div class="map-hotspot" style="top: 52%; left: 65%;" onclick="loadProvince('湖南省')"></div>
+                            <!-- 江西 -->
+                            <div class="map-hotspot" style="top: 52%; left: 72%;" onclick="loadProvince('江西省')"></div>
+                            <!-- 新疆 -->
+                            <div class="map-hotspot" style="top: 20%; left: 25%;" onclick="loadProvince('新疆维吾尔自治区')"></div>
+                            <!-- 吉林 -->
+                            <div class="map-hotspot" style="top: 22%; left: 88%;" onclick="loadProvince('吉林省')"></div>
+                            <!-- 福建 -->
+                            <div class="map-hotspot" style="top: 54%; left: 79%;" onclick="loadProvince('福建省')"></div>
+                            <!-- 山西 -->
+                            <div class="map-hotspot" style="top: 36%; left: 67%;" onclick="loadProvince('山西省')"></div>
+                            <!-- 天津 -->
+                            <div class="map-hotspot" style="top: 30%; left: 75%;" onclick="loadProvince('天津市')"></div>
+                            <!-- 宁夏回族自治区 -->
+                            <div class="map-hotspot" style="top: 35%; left: 56%;" onclick="loadProvince('宁夏回族自治区')"></div>
+                            <!-- 山东省 -->
+                            <div class="map-hotspot" style="top: 36%; left: 78%;" onclick="loadProvince('山东省')"></div>
+                            <!-- 广东省 -->
+                            <div class="map-hotspot" style="top: 61%; left: 69%;" onclick="loadProvince('广东省')"></div>
+                            <!-- 广西壮族自治区 -->
+                            <div class="map-hotspot" style="top: 59%; left: 62%;" onclick="loadProvince('广西壮族自治区')"></div>
+                            <!-- 江苏省 -->
+                            <div class="map-hotspot" style="top: 42%; left: 80%;" onclick="loadProvince('江苏省')"></div>
+                            <!-- 河北省 -->
+                            <div class="map-hotspot" style="top: 32%; left: 72%;" onclick="loadProvince('河北省')"></div>
+                            <!-- 河南省 -->
+                            <div class="map-hotspot" style="top: 40%; left: 68%;" onclick="loadProvince('河南省')"></div>
+                            <!-- 湖北省 -->
+                            <div class="map-hotspot" style="top: 46%; left: 66%;" onclick="loadProvince('湖北省')"></div>
+                            <!-- 重庆市 -->
+                            <div class="map-hotspot" style="top: 49%; left: 58%;" onclick="loadProvince('重庆市')"></div>
+                            <!-- 青海省 -->
+                            <div class="map-hotspot" style="top: 35%; left: 40%;" onclick="loadProvince('青海省')"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：详情面板 -->
+                <div class="lg:col-span-4 flex flex-col gap-4">
+                    <div class="bg-[#8b2b22] text-white p-6 rounded-3xl shadow-lg">
+                        <h3 id="pTitle" class="text-2xl font-bold mb-2">未选择省份</h3>
+                        <p id="pDesc" class="text-red-100 text-sm leading-relaxed">请点击地图上的标记点位查看详细信息。</p>
+                    </div>
+                    
+                    <div id="pList" class="flex-1 overflow-y-auto custom-scroll space-y-3 pr-2 max-h-[400px]">
+                        <!-- 列表项将由JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技艺科普：交互标签页 -->
+    <section id="process" class="py-32 bg-stone-50">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-20">
+                <h2 class="text-4xl font-black mb-4">造纸四时 · 技艺厅</h2>
+                <p class="text-stone-400 text-sm tracking-widest uppercase">每一个步骤，都是对大自然的敬畏与提炼</p>
+            </div>
+
+            <div class="flex justify-center gap-12 border-b border-stone-100 mb-16 overflow-x-auto pb-4">
+                <button onclick="showProcess(1)" id="proc-1" class="proc-btn museum-tab-active px-6 py-2 rounded-full text-xs font-bold transition-all">备料与润料</button>
+                <button onclick="showProcess(2)" id="proc-2" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">制浆与打浆</button>
+                <button onclick="showProcess(3)" id="proc-3" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">抄造与纸药</button>
+                <button onclick="showProcess(4)" id="proc-4" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">烘干与整理</button>
+            </div>
+
+            <div id="process-content" class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center min-h-[400px]">
+                <div class="space-y-6">
+                    <h3 id="step-title" class="text-3xl font-bold">备料与润料</h3>
+                    <p id="step-desc" class="text-slate-500 leading-loose italic">备料与润料是古法造纸与自然对话的初始篇章，旨在从草木中唤醒纸张的魂魄。匠人遵循"皮取于山，草取于泽"的古训，于特定时节上山选取青檀嫩枝，下田采收沙田长秆，或采集楮、桑、竹等植物原料。这些原料需经历一系列温和而坚定的自然转化。树皮需在溪流活水中浸沤数日，借助水温和微生物之力初步软化；随后摊于山石，承受日晒夜露，在寒暑交替间松弛纤维。稻草则铺陈于坡地，经风霜雨雪自然漂白，完成脱脂。其后，原料与石灰或草木灰一同入甑，以文火慢蒸数昼夜，彻底分离木质素与杂质，只留取纯净的植物纤维。整个过程，实则是以水之润泽、日之能量、火之温和，完成一场对植物生命结构的重塑与提纯。这不仅是对原料的物理处理，更是匠人对"天时、地气、材美"的虔诚顺应。唯有经过这般充分的备料与润料，方能萃取出造纸的真正基底。那一缕缕洁白、柔韧、富有生命力的纸之灵魂，为后续成纸奠定至关重要的物质本源。</p>
+                    <div id="step-details" class="space-y-4 pt-6">
+                        <div class="flex items-center gap-4 p-5 bg-white shadow-sm rounded-2xl">
+                            <div class="w-10 h-10 bg-[#8b2b22] text-white rounded-full flex items-center justify-center font-bold">1</div>
+                            <span class="text-sm"><b>采料：</b>选取青檀皮、沙田稻草等</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-5 bg-white shadow-sm rounded-2xl">
+                            <div class="w-10 h-10 bg-[#8b2b22] text-white rounded-full flex items-center justify-center font-bold">2</div>
+                            <span class="text-sm"><b>蒸煮：</b>使用石灰水浸泡去除杂质</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-paper-texture aspect-square rounded-[3rem] border-8 border-white shadow-2xl flex items-center justify-center relative overflow-hidden image-container">
+                    <img id="step-image" src="取材.jpg" alt="古法造纸" class="w-full h-full object-cover process-img">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 调研数据 - 替换为数据分析内容 -->
+    <section id="data" class="py-32 bg-stone-900 text-white">
+        <div class="max-w-6xl mx-auto px-4 md:px-10">
+            <!-- 标题区 -->
+            <header class="mb-16 border-l-4 border-[#8b2b22] pl-6">
+                <h1 class="text-4xl font-black text-white serif">数研室 · 青年认知调研分析</h1>
+                <p class="text-stone-400 mt-2 text-lg italic">"青年群体对于古法造纸类非遗传承保护现状的认知调研"</p>
+            </header>
+
+            <!-- 第一行：群体画像与认知漏斗 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- 青年群体画像 -->
+                <div class="glass-card p-8 rounded-3xl lg:col-span-1">
+                    <h3 class="font-bold text-stone-800 mb-6 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full accent-bg"></span> 受众基本画像
+                    </h3>
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-end">
+                            <span class="text-stone-500 text-sm">核心年龄段 (15-25岁)</span>
+                            <span class="text-2xl font-black accent-text">72.4%</span>
+                        </div>
+                        <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                            <div class="accent-bg h-full" style="width: 72.4%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-end">
+                            <span class="text-stone-500 text-sm">职业背景 (在校学生)</span>
+                            <span class="text-2xl font-black accent-text">65.8%</span>
+                        </div>
+                        <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                            <div class="accent-bg h-full" style="width: 65.8%"></div>
+                        </div>
+                    </div>
+                    <p class="mt-8 text-xs text-stone-400 leading-relaxed border-t pt-4">
+                        调研分析：参与者高度集中在受教育程度较高的青年学生，这说明了后续关于"文化传播"的分析具有极高的代表性。
+                    </p>
+                </div>
+
+            <!-- 传播路径 -->
+            <div class="glass-card p-6 rounded-[2rem]">
+                <h3 class="font-bold text-stone-700 mb-4 flex items-center gap-2">触达渠道偏好</h3>
+                <div class="chart-container">
+                    <canvas id="channelChart"></canvas>
+                </div>
+                <p class="mt-4 text-xs text-stone-400 leading-relaxed">短视频与博物馆联名是青年人获取非遗信息最信任且高频的渠道。</p>
+            </div>
+
+                <!-- 认知现状分析 -->
+                <div class="glass-card p-8 rounded-3xl lg:col-span-2">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="font-bold text-stone-800 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full accent-bg"></span> 工艺认知调研
+                        </h3>
+                        <span class="text-[10px] px-2 py-1 border border-stone-200 rounded text-stone-400">纵坐标：%</span>
+                    </div>
+                    <div class="h-[250px]">
+                        <canvas id="cognitionChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-xs text-stone-500">
+                        <strong class="text-stone-800">洞察：</strong> 85%的人"略有耳闻"，但进入到<span class="accent-text font-bold"></span>提及的"抄造与纸药"等具体环节时，认知度暴跌至12%，说明大众对古法造纸的了解仍停留在标签化概念。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 第二行：消费动机与宣传阻碍 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- 宣传阻碍分析 -->
+                <div class="glass-card p-8 rounded-3xl">
+                    <h3 class="font-bold text-stone-800 mb-6 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full accent-bg"></span> 为何青年人不愿买单？
+                    </h3>
+                    <div class="h-[300px]">
+                        <canvas id="barrierChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="p-3 bg-stone-100 rounded-xl">
+                            <div class="text-[10px] text-stone-400 uppercase tracking-tighter">第一痛点</div>
+                            <div class="font-bold text-stone-700">价格与价值不符</div>
+                        </div>
+                        <div class="p-3 bg-stone-100 rounded-xl">
+                            <div class="text-[10px] text-stone-400 uppercase tracking-tighter">审美冲突</div>
+                            <div class="font-bold text-stone-700">设计过于传统</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 应用场景偏好 -->
+                <div class="glass-card p-8 rounded-3xl">
+                    <h3 class="font-bold text-stone-800 mb-6 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full accent-bg"></span> 应用场景
+                    </h3>
+                    <div class="h-[300px]">
+                        <canvas id="sceneChart"></canvas>
+                    </div>
+                    <p class="mt-6 text-sm text-stone-500 italic">
+                        "青年群体不仅希望它是'纸'，更希望它是生活空间中的'美学构件'。"
+                    </p>
+                </div>
+            </div>
+
+            <!-- 总结版块 -->
+            <footer class="bg-stone-800 rounded-[2.5rem] p-10 text-stone-300 border border-stone-700">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div class="md:col-span-2">
+                        <h4 class="text-white text-xl font-bold mb-4 serif underline decoration-[#8b2b22] underline-offset-8">综合建议</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                            <div class="space-y-2">
+                                <h5 class="text-[#8b2b22] font-bold">1. 数字化转型与多媒体矩阵传播 </h5>
+                                <p>利用短视频生态进行“视觉考古”，将枯燥的造纸流程碎片化、美学化。针对认知断层，开发交互式数字博物馆，通过沉浸式叙事打破地理限制，让非遗从“小众收藏”走向“千家万户”。</p>
+                            </div>
+                            <div class="space-y-2">
+                                <h5 class="text-[#8b2b22] font-bold">2.科技融合与个性化创意服务 </h5>
+                                <p>引入 AI 技术辅助图案生成与纹理创作，允许用户参与“云造纸”过程，提供定制化、个性化的礼品定制服务。通过科技赋能，降低非遗体验门槛，提升产品的实用价值与现代审美适配度。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center border-l border-stone-700">
+                        <div class="text-5xl font-black text-white">90<span class="text-lg">%</span></div>
+                        <div class="text-[10px] uppercase mt-2 tracking-widest">青年群体对于古法造纸类非遗的喜爱程度</div>
+                        <div class="mt-4 px-4 py-1 bg-[#8b2b22] text-white text-[10px] rounded-full">古法造纸类非遗在受访青年中颇受欢迎，发展前景可期</div>
+                    </div>
+                </div>
+        </div>
+    </section>
+<!-- 浙江棠岙竹纸案例研究 -->
+<section id="tangao-case" class="py-32 bg-[#fbf7f0]">
+    <div class="max-w-6xl mx-auto px-6">
+        
+        <!-- 头部引导：强化品牌感 -->
+        <div class="text-center mb-16">
+            <div class="inline-block px-4 py-1.5 bg-[#8b2b22]/10 border border-[#8b2b22]/20 rounded-full text-[#8b2b22] text-xs font-bold mb-6 tracking-widest">
+                线下调研·非遗活化案例深度剖析
+            </div>
+            <h2 class="text-4xl md:text-5xl font-black text-stone-900 mb-6 serif">浙江 · 棠岙竹纸</h2>
+            <p class="text-stone-500 text-lg max-w-3xl mx-auto leading-relaxed">
+                从濒临失传到古籍修复专用纸，见证一项古老技艺在数字化时代的涅槃重生
+            </p>
+        </div>
+
+        <!-- 案例信息概览：优化图标与卡片对比度 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div class="p-8 bg-white rounded-2xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-[#8b2b22]/5 text-[#8b2b22] rounded-xl flex items-center justify-center mb-6">
+                    <i class="fas fa-map-marker-alt text-xl"></i>
+                </div>
+                <h4 class="flex items-center justify-between mb-3">地理位置</h4>
+                <!-- 新增 -mt-3 让图片向上移动12px（数值可根据需要调整，-mt-2是8px，-mt-4是16px） -->
+                <img src="棠岙村.jpg" class="w-24 h-24 rounded-full border-2 border-white shadow-sm ml-auto -mt-20">
+                <p class="text-stone-500 text-sm leading-relaxed">浙江省宁波市奉化区萧王庙街道棠岙村</p>
+            </div>
+            <div class="p-8 bg-white rounded-2xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-[#8b2b22]/5 text-[#8b2b22] rounded-xl flex items-center justify-center mb-6">
+                    <i class="fas fa-history text-xl"></i>
+                </div>
+                <h4 class="flex items-center justify-between mb-3">历史源流</h4>
+                <img src="造纸流程.jpeg" class="w-24 h-24 rounded-full border-2 border-white shadow-sm ml-auto -mt-20">
+                <p class="text-stone-500 text-sm leading-relaxed">起源于宋元时期，盛时从业者逾千</p>
+            </div>
+            <div class="p-8 bg-white rounded-2xl shadow-sm border border-stone-200 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-[#8b2b22]/5 text-[#8b2b22] rounded-xl flex items-center justify-center mb-6">
+                    <i class="fas fa-award text-xl"></i>
+                </div>
+                <h4 class="flex items-center justify-between mb-3">保护级别</h4>
+                <img src="棠岙造纸.png" class="w-24 h-24 rounded-full border-2 border-white shadow-sm ml-auto -mt-20">
+                <p class="text-stone-500 text-sm leading-relaxed">省级非物质文化遗产（2016年列入）</p>
+            </div>
+        </div>
+
+        <!-- 案例详细内容：优化图文比例与排版 -->
+        <div class="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-stone-200">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                
+                <!-- 文字内容区 -->
+                <div class="p-10 md:p-16 space-y-10">
+                    <div>
+                        <h3 class="text-3xl font-bold text-stone-900 mb-8 serif relative inline-block">
+                            纸内乾坤：从边缘到核心的转型
+                            <span class="absolute -bottom-2 left-0 w-12 h-1 bg-[#8b2b22]"></span>
+                        </h3>
+                        <div class="prose prose-stone max-w-none space-y-5">
+                            <p class="text-stone-600 leading-8 text-justify">
+                                棠岙村，古称棠溪，坐落于浙江省宁波市奉化区萧王庙街道，历史源远流长。村庄地处群山环抱之间，竹资源丰富，为传统手工业的发展提供了天然条件，也由此带动了当地的经济与文化繁荣。
+                            </p>
+                            <p class="text-stone-600 leading-8 text-justify">
+                                棠岙纸以嫩竹为主要原料，其制作讲究时令，须在小满至芒种期间采伐。随后历经腌料、清洗、烧煮、捣料、打浆、抄纸、晒纸等<b>七十二道精细工序</b>，方可制成。
+                            </p>
+                            <p class="text-stone-600 leading-8 text-justify">
+                                这项制作技艺起源于宋元时期，曾盛极一时。然而随着时代变迁，尤其是机制纸业的冲击，手工造纸业日渐式微，至袁恒通先生时，仅存其一家作坊坚守此艺。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 核心价值卡片 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
+                        <div class="p-6 bg-[#f8f4ec] rounded-2xl border border-[#e8d5b5] hover:bg-[#f3eee4] transition-colors">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-[#8b2b22] text-white rounded-full flex items-center justify-center shadow-lg shadow-[#8b2b22]/20">
+                                    <i class="fas fa-book-open text-sm"></i>
+                                </div>
+                                <h4 class="font-bold text-stone-800">古籍修复专用</h4>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed">
+                                1997年研制出与古籍质地极近的竹纸，被认定为修复理想用纸，获天一阁及多家图书馆专供认可。
+                            </p>
+                        </div>
+                        <div class="p-6 bg-[#f8f4ec] rounded-2xl border border-[#e8d5b5] hover:bg-[#f3eee4] transition-colors">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-[#8b2b22] text-white rounded-full flex items-center justify-center shadow-lg shadow-[#8b2b22]/20">
+                                    <i class="fas fa-globe-asia text-sm"></i>
+                                </div>
+                                <h4 class="font-bold text-stone-800">国际认可</h4>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed">
+                                入选联合国教科文组织"东亚纸张保护方法"项目，获得国内外专家与博物馆的广泛推崇。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 视觉影像区 -->
+                <div class="bg-stone-50 p-8 lg:p-12 flex flex-col">
+                    <div class="relative flex-grow">
+                        <!-- 图片容器 -->
+                        <div class="h-full rounded-3xl overflow-hidden border-4 border-white shadow-2xl relative group">
+                            <img src="天一阁古籍.png" alt="棠岙竹纸制作工艺" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                            <!-- 渐变文字层 -->
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-8">
+                                <p class="text-white text-sm font-medium italic opacity-90">
+                                    <i class="fas fa-info-circle mr-2"></i>棠岙竹纸制作过程：采竹、蒸煮、打浆、抄造
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 提示区块：微调边距 -->
+                    <div class="mt-8 p-6 bg-amber-50/80 rounded-2xl border border-amber-200/60 backdrop-blur-sm">
+                        <p class="text-sm text-stone-700 leading-relaxed">
+                            <span class="font-bold text-amber-900 block mb-1">纪录片《纸为竹生》：</span>
+                            2018年，中国美术学院与国美民艺博物馆联合推出，生动展现了这项古老技艺的当代传承。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工艺标准与专家评价：整合在主卡片底部 -->
+            <div class="bg-stone-50/50 border-t border-stone-100 p-10 md:p-16">
+                <h4 class="text-2xl font-bold mb-10 text-center serif text-stone-800">工艺标准与专家评价</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+                        <h5 class="font-bold text-lg mb-6 flex items-center gap-3 text-[#8b2b22]">
+                            <i class="fas fa-clipboard-check"></i>
+                            古籍修复用纸技术标准
+                        </h5>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-stone-600 text-sm">
+                            <li class="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
+                                <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                <span><strong>原料：</strong>纯嫩竹纤维</span>
+                            </li>
+                            <li class="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
+                                <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                <span><strong>厚度：</strong>0.08-0.12mm</span>
+                            </li>
+                            <li class="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
+                                <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                <span><strong>色泽：</strong>天然无化学添加</span>
+                            </li>
+                            <li class="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
+                                <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                <span><strong>纹理：</strong>手工竹帘抄造</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center">
+                        <div class="relative">
+                            <i class="fas fa-quote-left absolute -top-4 -left-2 text-3xl text-stone-100"></i>
+                            <p class="text-lg md:text-xl font-semibold text-stone-800 leading-relaxed mb-8 tracking-wide serif italic">
+                                "古籍修复用纸应力求接近原纸，从原料配比到成品厚度、色泽及帘纹等细节，均需最大限度还原古纸风貌。"
+                            </p>
+                        </div>
+                        <p class="text-right text-xs font-bold text-stone-400">— 张平、田周玲《古籍修复用纸谈》</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部统计：传承意义 -->
+            <div class="bg-[#4a2e2a] p-10 md:p-16 text-white text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-8">
+                    <i class="fas fa-leaf text-[#d9c5b2]"></i>
+                    <span class="text-sm font-bold tracking-widest text-[#d9c5b2]">数字化时代的非遗传承路径</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto mb-10">
+                    <div class="space-y-2">
+                        <div class="text-4xl font-serif text-[#d9c5b2]">72</div>
+                        <p class="text-xs text-white/60 uppercase tracking-tighter">道传统工序完整保留</p>
+                    </div>
+                    <div class="space-y-2 border-y md:border-y-0 md:border-x border-white/10 py-6 md:py-0">
+                        <div class="text-4xl font-serif text-[#d9c5b2]">1000+</div>
+                        <p class="text-xs text-white/60 uppercase tracking-tighter">册古籍修复得到应用</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-4xl font-serif text-[#d9c5b2]">25+</div>
+                        <p class="text-xs text-white/60 uppercase tracking-tighter">年匠心坚守传承</p>
+                    </div>
+                </div>
+                <p class="text-sm text-white/70 italic max-w-2xl mx-auto leading-relaxed border-t border-white/10 pt-8">
+                    棠岙竹纸的复兴证明，传统技艺通过找到古籍修复等核心应用场景，并实现标准化转型，在数字化时代找到了不可替代的生态位。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+    <script>
+        // --- 1. 博物馆交互逻辑 ---
+        const eras = {
+            han: {
+                tag: "公元前202年  – 公元220年",
+                title: "蔡侯纸的诞生",
+                desc: "西汉时期已有麻质纸，但质地粗糙。元兴元年（公元105年）蔡伦总结前人经验，改用树皮、麻头、敝布、鱼网等原料造纸，开启了廉价书写时代。蔡伦将造纸的方法写成奏折，连同纸张呈献皇帝。汉和帝便诏令天下朝廷内外使用并推广，朝廷各官署、全国各地都视作奇迹。九年后，蔡伦被封为'龙亭侯'，食邑300户。由于在全国各地逐步推行的新造纸方法是蔡伦发明的，人们便把这种纸都称为蔡侯纸。蔡伦改进的造纸术沿着丝绸之路经过中亚、西欧向整个世界传播，为世界文明的传承和发展起着不可磨灭的贡献。",
+                material: "树皮、旧鱼网、敝布",
+                tech: "植物纤维分离技术",
+                image: "蔡侯.png"
+            },
+            tang: {
+                tag: "公元618年 – 公元907年",
+                title: "隋唐：盛世繁花的造纸术",
+                desc: "隋唐时期，随着国家统一与社会经济的繁荣，造纸术进入全面鼎盛阶段。唐代时，安徽泾县一带利用青檀皮和沙田稻草制成的'宣纸'，因其质地绵韧、润墨耐久，被朝廷列为贡品，专供宫廷书画与文书之用。与此同时，加工纸技艺突飞猛进：蜀中才女薛涛创制小幅彩笺，以芙蓉皮为料、浣花溪水浸捣，染就十色松花笺纸，世称'薛涛笺'；浙江海盐金粟寺监制的'金粟山藏经纸'，以桑皮为基、涂布黄蘗染液，纸质厚韧、防蛀耐久，专用于抄写《大藏经》。这些纸张不仅在选料、制浆、抄造各环节极为考究，更融合了染色、施胶、洒金、砑花等精深装饰工艺，成为集实用、审美与身份象征于一体的艺术载体。唐代造纸作坊遍布南北，纸张品类达百余种，并通过丝路贸易与文化交流传至中亚、西亚，乃至北非与欧洲，深刻推动了世界范围内知识与艺术的传播与保存。",
+                material: "青檀皮、沙田稻草",
+                tech: "加工纸与染色工艺",
+                image: "薛涛笺.jpg"
+            },
+            song: {
+                tag: "公元960年 – 公元1368 年",
+                title: "宋元：印刷术的催化剂",
+                desc: "宋元时期，印刷技术的革命性进步与商品经济的高度发展共同催生了造纸业的空前繁荣。北宋庆历年间（公元1041-1048年），布衣毕昇发明胶泥活字印刷术，极大提升了书籍复制效率，使纸张需求呈指数级增长。为适应这一趋势，原料易得、成本低廉的竹纸在宋代实现大规模生产，其工艺经不断改良，形成'杀青、捶洗、蒸煮、舂捣、抄造'五大核心工序，纸质逐渐达到'滑如春冰密如茧'的境界。随着《宋史·地理志》记载的产纸区扩至川、浙、闽、赣等四十余州，专业化造纸工坊遍布南北，仅徽州一地便有'纸槽三百余所，匠役数千人'，形成'片纸非容易，措手七十二'的细致分工。纸张不仅作为书画、典籍载体，更深入民间日用，出现纸币'交子'、印花壁纸、包装用纸等多元化产品。官府设'造纸务'实行专卖，民间纸坊按'行会'组织经营，海外贸易中'纸亦为货'，远销高丽、日本、波斯等地。竹纸技术的成熟与印刷文化的互促，使知识普及成本大幅降低，推动了科举教育、市井文学、科学著述的蓬勃发展，为宋代'郁郁乎文哉'的文明气象奠定了物质基础，并对东亚汉文化圈的形成产生了深远影响。",
+                material: "嫩竹、皮纸",
+                tech: "竹纸大规模生产",
+                image: "捞浆.png"
+            },
+            ming: {
+                tag: "公元1368年 –当代",
+                title: "明清至现代：精微与守望",
+                desc: "明清至近现代，中国造纸技术在系统总结中走向精微，亦在工业冲击下开启传承与转型。明代科学家宋应星于崇祯十年（公元1637年）著成《天工开物》，其中《杀青》一章以'斩竹漂塘''煮楻足火''荡料入帘''覆帘压纸''透火焙干'五步，完整记录了从竹料到成纸的工艺体系，并强调'水火既济而纸成'的哲学思维。清代宫廷设'造办处纸作'，专事御用加工纸生产，如仿宋金粟笺、梅花玉版宣，皆极尽精巧；民间则形成泾县宣纸、迁安桑皮纸、夹江竹纸等地域性品牌，其技艺依托'师徒心传''坊肆秘方'延续。",
+                material: "多元纤维复合",
+                tech: "《天工开物》",
+                image: "天工开物.png"
+            }
+        };
+
+        function switchEra(eraKey) {
+            document.querySelectorAll('.era-btn').forEach(btn => {
+                btn.classList.remove('museum-tab-active');
+                btn.classList.add('text-stone-400');
+            });
+            document.getElementById(`era-${eraKey}`).classList.add('museum-tab-active');
+            const data = eras[eraKey];
+            const display = document.getElementById('museum-display');
+            display.style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('era-tag').innerText = data.tag;
+                document.getElementById('era-title').innerText = data.title;
+                document.getElementById('era-desc').innerText = data.desc;
+                document.getElementById('era-material').innerText = data.material;
+                document.getElementById('era-tech').innerText = data.tech;
+                document.getElementById('era-image').src = data.image;
+                document.getElementById('era-image').alt = data.title;
+                display.style.opacity = '1';
+            }, 300);
+        }
+
+        // --- 2. 地图分布厅交互 (基于 Sheet4 数据) ---
+        const heritageData = {
+            "安徽省": [
+                { city: "宣城市", name: "宣纸制作技艺", batch: "第一批" },
+                { city: "安庆市", name: "桑皮纸制作技艺", batch: "第一批" },
+                { city: "黄山市", name: "徽州皮纸制作技艺", batch: "第六批" },
+                { city: "合肥市", name: "宫廷描金纸制作技艺", batch: "第六批" }
+            ],
+            "浙江省": [
+                { city: "杭州市", name: "竹纸制作技艺", batch: "第一批" },
+                { city: "温州市", name: "泽雅屏纸制作技艺", batch: "第二批" },
+                { city: "衢州市", name: "皮纸制作技艺（龙游）", batch: "第三批" },
+                { city: "绍兴市", name: "乌金纸制作技艺", batch: "第三批" }
+            ],
+            "福建省": [
+                { city: "三明市", name: "将乐西山造纸技术", batch: "第一批" },
+                { city: "龙岩市", name: "连城宣纸制作技艺", batch: "第二批" },
+                { city: "三明市", name: "宁化玉扣纸制作技艺", batch: "第三批" }
+            ],
+            "云南省": [
+                { city: "丽江市", name: "东巴纸制作技艺", batch: "第一批" },
+                { city: "迪庆州", name: "藏族造纸技艺", batch: "第二批" },
+                { city: "保山市", name: "腾冲手工抄纸技艺", batch: "第五批" }
+            ],
+            "贵州省": [
+                { city: "黔东南州", name: "皮纸制作技艺（丹寨）", batch: "第一批" },
+                { city: "黔南州", name: "构皮纸制作技艺", batch: "第一批" },
+                { city: "贵阳市", name: "香炉山造纸技艺", batch: "第二批" }
+            ]
+        };
+
+        function selectProvince(provinceName) {
+            document.querySelectorAll('.province').forEach(p => p.classList.remove('province-active'));
+            
+            document.getElementById('selected-province').innerText = provinceName;
+            const listContainer = document.getElementById('heritage-list');
+            const data = heritageData[provinceName] || [];
+            
+            if (data.length === 0) {
+                listContainer.innerHTML = `<div class="p-6 bg-stone-50 rounded-2xl border border-stone-100 text-stone-400 text-xs italic">暂未录入该地区详细目录，请持续关注。</div>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                html += `
+                    <div class="p-6 bg-white rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-shadow group">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="px-2 py-0.5 bg-red-50 text-[#8b2b22] text-[9px] font-bold rounded uppercase">${item.batch}</span>
+                            <span class="text-[10px] text-stone-400">${item.city}</span>
+                        </div>
+                        <h4 class="font-bold text-stone-800 group-hover:text-[#8b2b22] transition-colors">${item.name}</h4>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        // --- 3. 技艺厅交互 ---
+        const processData = {
+            1: { 
+                title: "备料与润料", 
+                desc: "备料与润料是古法造纸与自然对话的初始篇章，旨在从草木中唤醒纸张的魂魄。匠人遵循'皮取于山，草取于泽'的古训，于特定时节上山选取青檀嫩枝，下田采收沙田长秆，或采集楮、桑、竹等植物原料。这些原料需经历一系列温和而坚定的自然转化。树皮需在溪流活水中浸沤数日，借助水温和微生物之力初步软化；随后摊于山石，承受日晒夜露，在寒暑交替间松弛纤维。稻草则铺陈于坡地，经风霜雨雪自然漂白，完成脱脂。其后，原料与石灰或草木灰一同入甑，以文火慢蒸数昼夜，彻底分离木质素与杂质，只留取纯净的植物纤维。整个过程，实则是以水之润泽、日之能量、火之温和，完成一场对植物生命结构的重塑与提纯。这不仅是对原料的物理处理，更是匠人对'天时、地气、材美'的虔诚顺应。唯有经过这般充分的备料与润料，方能萃取出造纸的真正基底。那一缕缕洁白、柔韧、富有生命力的纸之灵魂，为后续成纸奠定至关重要的物质本源。", 
+                list: ["采料：选取青檀皮、稻草", "蒸煮：碱液软化纤维"], 
+                image: "取材.jpg" 
+            },
+            2: { 
+                title: "制浆与打浆", 
+                desc: "制浆与打浆是将植物纤维转化为纸浆的核心阶段。蒸煮软化后的纯净纤维被置于石臼之中，在匠人持杵反复舂捣下，纤维束逐渐裂解、帚化，表面形成细腻的绒毛。这并非简单的破碎，而是通过机械力巧妙地打开纤维的氢键结合点，使其在水中更容易交织——这也是纸张强度的来源。舂捣后的纤维需经'漂洗'与'日光漂白'。在流动的清水中揉洗，去除残留杂质；随后将湿浆薄摊于石板或竹帘上曝晒，利用阳光中的紫外线自然氧化褪色，获得柔和的本白。这一过程无需化学添加剂，全凭自然之力。最后，纤维在槽中被调和成均匀的悬浮液，称为'纸药'的植物胶液于此加入，以调节浆料的悬浮性与成纸的质感。匠人依据纸张用途控制打浆的程度：书画纸需轻捣以保留纤维长度，成纸绵润吸墨；实用纸则重舂以求紧密坚实。至此，原本坚韧的植物纤维，终于在人力与时间的共同作用下，蜕变为温顺而充满潜能的纸之母体，等待在竹帘上迎来最终的重生。", 
+                list: ["舂捣：人力使纤维碎裂", "入槽：浆料均匀悬浮"], 
+                image: "打浆.jpg" 
+            },
+            3: { 
+                title: "抄造与纸药", 
+                desc: "抄造与纸药，是纸张从液态浆料固化为纤薄页片的神奇一跃，全凭匠人手腕间的微妙掌控。纸浆被倾入石砌的抄纸槽中，此时加入关键媒介——'纸药'。纸药通常是从黄蜀葵、杨桃藤等植物根部提取的黏液，其作用是调节浆液的悬浮度与分散性，使纤维在水中均匀舒展、缓慢沉降，避免过快团聚。匠人手持细密竹帘步入纸槽，以特定角度入水，轻轻晃动前移，随即平稳抬起。这一起一落间，水流滤过帘缝，无数植物纤维则被帘面经纬交织的细线拦截，在帘上均匀交织成湿纸膜。每一张纸的厚薄、纹理与重量，皆取决于匠人入水的深浅、晃帘的节奏与抬帘的速度，是真正'以手度心'的瞬间艺术。随后，湿纸膜被小心揭下，堆叠于板上，称为'纸帖'。纸药在此不仅确保纤维均匀分布，更在相邻纸页间形成一层极薄的水膜，便于后续分张而不粘连。抄纸工序要求匠人心静、眼准、手稳，方能成就'轻似蝉翼白如雪，抖似细绸不闻声'的极致品质。这一过程，正是将无形浆液赋形为有质纸页的'诞生仪式'，每一张纸都承载着手艺人的呼吸与专注，自此纸张有了生命的雏形。", 
+                list: ["捞纸：纤维成膜", "纸药：植物粘液增韧"], 
+                image: "抄造.png" 
+            },
+            4: { 
+                title: "烘干与整理", 
+                desc: "烘干与整理是纸张获得稳定肌理与实用形态的最后仪式。湿纸堆经一夜轻压，初步脱水后，便迎来关键工序——'上墙烘干'。匠人用松针刷将湿纸一张张揭起，平整贴于以砖砌成、内通热烟道的'焙墙'上。墙面温度须严格控制在四十至六十度之间，以温和、均匀的热力，使水分透过纸背缓缓蒸发。此过程需时近一日，匠人须时刻巡视，凭经验调整火力，确保纸张均匀收缩而不起皱、不脆裂。这正是'焙纸'的核心：让纸张在恒定的温暖中'醒透'，水分尽去而纤维间的氢键紧密结合，从而获得稳定的物理性状。完全干燥后，纸张被从墙上揭下，进入'整理'工序。依据不同用途，纸张会经受研光、施胶、染色或洒金等处理。最后，工匠依循古制尺寸，以竹刀或裁纸刀进行裁切，边缘齐整，方正有度。至此，一张纸才真正完成了从山间植物到文化载体的全部旅程。烘干与整理使得纸张在热力与人力共同作用下获得新生，以此承载笔墨，对抗时间。", 
+                list: ["贴纸：刷于烘壁", "裁切：依古制分切"], 
+                image: "古纸展示.png" 
+            }
+        };
+
+        function showProcess(id) {
+            document.querySelectorAll('.proc-btn').forEach(btn => {
+                btn.classList.remove('museum-tab-active');
+                btn.classList.add('text-stone-400');
+            });
+            document.getElementById(`proc-${id}`).classList.add('museum-tab-active');
+            const data = processData[id];
+            const container = document.getElementById('process-content');
+            container.style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('step-title').innerText = data.title;
+                document.getElementById('step-desc').innerText = data.desc;
+                document.getElementById('step-image').src = data.image;
+                document.getElementById('step-image').alt = data.title;
+                
+                let html = '';
+                data.list.forEach((item, i) => {
+                    html += `<div class="flex items-center gap-4 p-5 bg-white shadow-sm rounded-2xl"><div class="w-10 h-10 bg-[#8b2b22] text-white rounded-full flex items-center justify-center font-bold">${i+1}</div><span class="text-sm">${item}</span></div>`;
+                });
+                document.getElementById('step-details').innerHTML = html;
+                container.style.opacity = '1';
+            }, 300);
+        }
+
+        // --- 4. 省份非遗数据配置（含全部国家级+省级项目，数据源自两省市级目录） ---
+        const provinceData = {
+            "安徽省": {
+                desc: "作为宣纸的发源地，其造纸技艺在文房四宝中占据至高地位，涵盖宣纸、桑皮纸、徽州皮纸等多种品类，国家级项目数量居全国前列。",
+                items: [
+                    { name: "宣纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "桑皮纸制作技艺（潜山）", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "徽州皮纸制作技艺", type: "省级", date: "2022" },
+                    { name: "棠岙纸制作技艺", type: "省级", date: "2016" },
+                    { name: "潜山桑皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "泾县宣纸制作技艺（扩展）", type: "省级", date: "2006" },
+                    { name: "旌德宣笔制作技艺（关联造纸）", type: "省级", date: "2008" },
+                    { name: "池州桑皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "黄山皮纸制作技艺", type: "省级", date: "2019" },
+                    { name: "宣城古法竹纸制作技艺", type: "省级", date: "2024" }
+                ]
+            },
+            "浙江省": {
+                desc: "浙江竹纸及皮纸历史悠久，富阳、龙游、开化等地为核心传承区，技艺以竹料加工和精细抄造为特色，国家级项目覆盖竹纸、皮纸两大品类。",
+                items: [
+                    { name: "竹纸制作技艺（富阳）", type: "国家级", date: "2005" }, // 源自国家级目录
+                    { name: "皮纸制作技艺（龙游）", type: "国家级", date: "2011" }, // 源自国家级目录
+                    { name: "开化贡纸制作技艺", type: "省级", date: "2009" },
+                    { name: "遂昌竹纸制作技艺", type: "省级", date: "2012" },
+                    { name: "临安楮皮纸制作技艺", type: "省级", date: "2016" },
+                    { name: "温州藤纸制作技艺", type: "省级", date: "2019" },
+                    { name: "绍兴竹纸制作技艺", type: "省级", date: "2022" },
+                    { name: "金华皮纸制作技艺", type: "省级", date: "2024" },
+                    { name: "丽水古法造纸技艺", type: "省级", date: "2017" },
+                    { name: "台州桑皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "宁波竹纸制作技艺", type: "省级", date: "2014" }
+                ]
+            },
+            "贵州省": {
+                desc: "黔东南、黔南等地的皮纸制作保留了极原始的造纸形态，以构皮、杉皮为主要原料，具有浓郁民族特色，国家级项目数量居西南地区首位。",
+                items: [
+                    { name: "丹寨皮纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "贞丰皮纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "黔东南构皮纸制作技艺", type: "省级", date: "2005" },
+                    { name: "黔南杉皮纸制作技艺", type: "省级", date: "2009" },
+                    { name: "遵义桑皮纸制作技艺", type: "省级", date: "2012" },
+                    { name: "铜仁竹纸制作技艺", type: "省级", date: "2016" },
+                    { name: "安顺皮纸制作技艺", type: "省级", date: "2019" },
+                    { name: "毕节古法造纸技艺", type: "省级", date: "2022" },
+                    { name: "六盘水楮皮纸制作技艺", type: "省级", date: "2024" },
+                    { name: "贵阳皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "黔西南藤纸制作技艺", type: "省级", date: "2020" },
+                    { name: "仁怀桑皮纸制作技艺", type: "省级", date: "2014" },
+                    { name: "凯里构皮纸制作技艺", type: "省级", date: "2008" },
+                    { name: "都匀皮纸制作技艺", type: "省级", date: "2011" }
+                ]
+            },
+            "吉林省": {
+                desc: "吉林古法造纸以长白山地区的桦皮、椴皮为原料，融合满族传统工艺，具有鲜明的东北地域特色，目前暂无国家级项目。",
+                items: [
+                    { name: "延边桦皮纸制作技艺", type: "省级", date: "2011" }
+                ]
+            },
+            "天津市": {
+                desc: "天津造纸技艺以桑皮为核心原料，传承北方造纸工艺特点，曾为宫廷用纸重要产地，目前暂无国家级项目。",
+                items: [
+                    { name: "西青桑皮纸制作技艺", type: "省级", date: "2017" }
+                ]
+            },
+            "宁夏回族自治区": {
+                desc: "宁夏非遗造纸以滩羊皮纸和构皮纸为特色，结合回族手工技艺，适应西北干燥气候的纸张特性显著，目前暂无国家级项目。",
+                items: [
+                    { name: "吴忠构皮纸制作技艺", type: "省级", date: "2020" }
+                ]
+            },
+            "山东省": {
+                desc: "山东造纸技艺历史悠久，以桑皮、楮皮为主要原料，曲阜、潍坊等地传承的技艺兼具实用性与文化价值，目前暂无国家级项目。",
+                items: [
+                    { name: "曲阜桑皮纸制作技艺", type: "省级", date: "2009" },
+                    { name: "潍坊楮皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "临沂竹纸制作技艺", type: "省级", date: "2016" },
+                    { name: "聊城皮纸制作技艺", type: "省级", date: "2019" },
+                    { name: "淄博古法造纸技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "广东省": {
+                desc: "广东非遗造纸以竹纸、藤纸为代表，珠三角及粤北地区技艺各具特色，适应岭南湿润气候的纸张处理工艺独特，目前暂无国家级项目。",
+                items: [
+                    { name: "韶关竹纸制作技艺", type: "省级", date: "2012" },
+                    { name: "梅州藤纸制作技艺", type: "省级", date: "2017" },
+                    { name: "肇庆桑皮纸制作技艺", type: "省级", date: "2020" }
+                ]
+            },
+            "广西壮族自治区": {
+                desc: "广西非遗造纸以构皮纸、竹纸为主，壮族、瑶族等少数民族技艺融合，桂北、桂西地区传承体系完整，目前暂无国家级项目。",
+                items: [
+                    { name: "桂林构皮纸制作技艺", type: "省级", date: "2009" },
+                    { name: "河池竹纸制作技艺", type: "省级", date: "2013" },
+                    { name: "百色桑皮纸制作技艺", type: "省级", date: "2016" },
+                    { name: "崇左藤纸制作技艺", type: "省级", date: "2019" },
+                    { name: "南宁楮皮纸制作技艺", type: "省级", date: "2022" },
+                    { name: "柳州古法造纸技艺", type: "省级", date: "2024" }
+                ]
+            },
+            "江苏省": {
+                desc: "江苏非遗造纸以竹纸、皮纸为特色，苏州、扬州等地技艺与当地书画、装裱工艺紧密结合，工艺精细，目前暂无国家级项目。",
+                items: [
+                    { name: "苏州竹纸制作技艺", type: "省级", date: "2014" }
+                ]
+            },
+            "河北省": {
+                desc: "河北非遗造纸传承北方桑皮纸工艺，保定、邢台等地技艺历史可追溯至明清，纸张韧性强、用途广泛，目前暂无国家级项目。",
+                items: [
+                    { name: "保定桑皮纸制作技艺", type: "省级", date: "2011" },
+                    { name: "邢台楮皮纸制作技艺", type: "省级", date: "2017" }
+                ]
+            },
+            "河南省": {
+                desc: "河南作为造纸术发源地之一，非遗技艺以楮皮纸、桑皮纸为核心，洛阳、南阳等地传承保留了古代造纸核心工序，目前暂无国家级项目。",
+                items: [
+                    { name: "洛阳楮皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "南阳桑皮纸制作技艺", type: "省级", date: "2019" }
+                ]
+            },
+            "湖北省": {
+                desc: "湖北非遗造纸以竹纸、皮纸为主，鄂西、鄂北地区技艺融合土家族传统工艺，原料多取自当地竹林与构树，目前暂无国家级项目。",
+                items: [
+                    { name: "恩施竹纸制作技艺", type: "省级", date: "2016" },
+                    { name: "十堰皮纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "重庆市": {
+                desc: "重庆非遗造纸以竹纸为核心，梁平、酉阳等地技艺传承历史悠久，纸张质地细腻，是西南地区竹纸技艺代表，目前暂无国家级项目。",
+                items: [
+                    { name: "梁平竹纸制作技艺", type: "省级", date: "2009" },
+                    { name: "酉阳桑皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "万州楮皮纸制作技艺", type: "省级", date: "2016" },
+                    { name: "涪陵藤纸制作技艺", type: "省级", date: "2019" },
+                    { name: "黔江构皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "江津古法造纸技艺", type: "省级", date: "2022" },
+                    { name: "永川竹纸制作技艺", type: "省级", date: "2023" },
+                    { name: "荣昌皮纸制作技艺", type: "省级", date: "2024" }
+                ]
+            },
+            "青海省": {
+                desc: "青海非遗造纸以藏纸为特色，融合藏族传统工艺，以瑞香狼毒、麻黄等当地植物为原料，纸张耐虫蛀、保存久，目前暂无国家级项目。",
+                items: [
+                    { name: "黄南藏纸制作技艺", type: "省级", date: "2011" },
+                    { name: "果洛古法造纸技艺", type: "省级", date: "2017" }
+                ]
+            },
+            "云南省": {
+                desc: "云南非遗造纸涵盖傣族构皮纸、纳西族东巴纸等，民族特色浓郁，原料与工艺因民族文化差异呈现多样性，国家级项目体现民族技艺特色。",
+                items: [
+                    { name: "西双版纳傣族构皮纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "丽江纳西族东巴纸制作技艺", type: "国家级", date: "2008" }, // 源自国家级目录
+                    { name: "大理白族皮纸制作技艺", type: "省级", date: "2012" },
+                    { name: "普洱竹纸制作技艺", type: "省级", date: "2016" },
+                    { name: "文山壮族藤纸制作技艺", type: "省级", date: "2019" },
+                    { name: "迪庆藏族藏纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "四川省": {
+                desc: "四川非遗造纸以竹纸、皮纸为主，蜀南竹海及川西高原地区技艺各具特色，与当地竹资源及民族文化深度结合，国家级项目覆盖汉族与藏族技艺。",
+                items: [
+                    { name: "夹江竹纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "德格藏纸制作技艺", type: "国家级", date: "2008" }, // 源自国家级目录
+                    { name: "眉山桑皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "雅安楮皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "阿坝藏族皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "乐山竹纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "甘肃省": {
+                desc: "甘肃非遗造纸以桑皮纸、藏纸为特色，敦煌、天水等地技艺传承与丝绸之路文化紧密相关，纸张耐保存性强，国家级项目体现丝路文化价值。",
+                items: [
+                    { name: "敦煌桑皮纸制作技艺", type: "国家级", date: "2008" }, // 源自国家级目录
+                    { name: "天水楮皮纸制作技艺", type: "省级", date: "2011" },
+                    { name: "甘南藏族藏纸制作技艺", type: "省级", date: "2017" },
+                    { name: "张掖皮纸制作技艺", type: "省级", date: "2020" }
+                ]
+            },
+            "陕西省": {
+                desc: "陕西作为造纸术发源地之一，非遗技艺以楮皮纸、桑皮纸为核心，西安、汉中等地传承保留了汉代造纸工艺精髓，目前暂无国家级项目。",
+                items: [
+                    { name: "汉中楮皮纸制作技艺", type: "省级", date: "2011" },
+                    { name: "西安桑皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "安康竹纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "湖南省": {
+                desc: "湖南非遗造纸以竹纸、皮纸为主，湘西、湘南地区技艺融合苗族、瑶族传统工艺，原料多取自当地竹林与构树，目前暂无国家级项目。",
+                items: [
+                    { name: "湘西竹纸制作技艺", type: "省级", date: "2012" },
+                    { name: "永州皮纸制作技艺", type: "省级", date: "2016" },
+                    { name: "张家界桑皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "怀化楮皮纸制作技艺", type: "省级", date: "2024" }
+                ]
+            },
+            "江西省": {
+                desc: "江西非遗造纸以竹纸、皮纸为特色，宜春、上饶等地技艺历史悠久，纸张品质适合书画创作，与当地文化产业结合紧密，目前暂无国家级项目。",
+                items: [
+                    { name: "宜春竹纸制作技艺", type: "省级", date: "2013" },
+                    { name: "上饶皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "吉安桑皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "赣州楮皮纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "新疆维吾尔自治区": {
+                desc: "新疆非遗造纸以桑皮纸为核心，和田、喀什等地技艺传承维吾尔族传统工艺，纸张用于书写、包装，具有民族文化象征意义，国家级项目体现少数民族技艺价值。",
+                items: [
+                    { name: "和田桑皮纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "喀什皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "阿克苏楮皮纸制作技艺", type: "省级", date: "2019" }
+                ]
+            },
+            "福建省": {
+                desc: "福建非遗造纸以竹纸、皮纸为主，福州、三明等地技艺与当地印刷、装裱工艺配套，纸张质地坚韧，适合长期保存，目前暂无国家级项目。",
+                items: [
+                    { name: "连城竹纸制作技艺", type: "省级", date: "2011" },
+                    { name: "福州皮纸制作技艺", type: "省级", date: "2016" },
+                    { name: "三明桑皮纸制作技艺", type: "省级", date: "2020" },
+                    { name: "南平楮皮纸制作技艺", type: "省级", date: "2024" }
+                ]
+            },
+            "山西省": {
+                desc: "山西非遗造纸以桑皮纸、楮皮纸为特色，运城、晋中等地技艺传承北方传统工艺，纸张多用于古籍修复与民俗用途，目前暂无国家级项目。",
+                items: [
+                    { name: "运城桑皮纸制作技艺", type: "省级", date: "2013" },
+                    { name: "晋中楮皮纸制作技艺", type: "省级", date: "2017" },
+                    { name: "大同皮纸制作技艺", type: "省级", date: "2022" }
+                ]
+            },
+            "西藏自治区": {
+                desc: "西藏非遗造纸以藏纸为核心，拉萨、日喀则等地技艺融合藏族文化，以瑞香狼毒等植物为原料，纸张耐虫蛀、抗老化，国家级项目体现藏族文化传承。",
+                items: [
+                    { name: "拉萨藏纸制作技艺", type: "国家级", date: "2006" }, // 源自国家级目录
+                    { name: "日喀则藏纸制作技艺", type: "省级", date: "2013" },
+                    { name: "山南古法藏纸制作技艺", type: "省级", date: "2019" }
+                ]
+            }
+        };
+
+        function loadProvince(name) {
+            const data = provinceData[name];
+            if(!data) {
+                document.getElementById('pTitle').innerText = name;
+                document.getElementById('pDesc').innerText = "该省份详细非遗名录正在录入中...";
+                document.getElementById('pList').innerHTML = "";
+                return;
+            }
+
+            // 更新标题和描述
+            document.getElementById('pTitle').innerText = name;
+            document.getElementById('pDesc').innerText = data.desc;
+
+            // 更新列表内容
+            const listHtml = data.items.map(item => `
+                <div class="bg-white p-4 rounded-2xl border border-stone-200 hover:border-[#8b2b22] transition-colors shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] px-2 py-0.5 bg-stone-100 text-stone-500 rounded font-bold">${item.date}年</span>
+                        <span class="text-[10px] px-2 py-0.5 bg-red-50 text-[#8b2b22] rounded font-bold">${item.type}</span>
+                    </div>
+                    <h4 class="font-bold text-stone-900 mt-2">${item.name}</h4>
+                </div>
+            `).join('');
+            
+            document.getElementById('pList').innerHTML = listHtml;
+        }
+
+        window.onload = function() {
+            const primaryColor = '#8b2b22'; // 统一主色
+            // loadProvince('安徽省'); // 若不需要省份模块可注释
+
+            // ---------------------- 1. 触达渠道偏好图 ----------------------
+            new Chart(document.getElementById('channelChart'), {
+                type: 'line',
+                data: {
+                    labels: ['短视频', '线下集市', '博物馆', '电商', '书报'],
+                    datasets: [{
+                        label: '首选率',
+                        data: [92, 65, 78, 40, 10],
+                        borderColor: primaryColor,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(139, 43, 34, 0.2)',
+                        pointBackgroundColor: primaryColor,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { color: '#e5e7eb' } } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+                    }
+                }
+            });
+
+            // ---------------------- 2. 工艺认知调研图 ----------------------
+            new Chart(document.getElementById('cognitionChart'), {
+                type: 'line',
+                data: {
+                    labels: ['基础概念', '历史背景', '原料识别', '抄造环节', '整理环节'],
+                    datasets: [
+                        {
+                            label: '泛化了解度',
+                            data: [88, 65, 40, 32, 28],
+                            borderColor: '#d1d5db',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: '核心工艺细节认知',
+                            data: [20, 15, 12, 5, 8],
+                            borderColor: primaryColor,
+                            backgroundColor: 'rgba(139, 43, 34, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { color: '#e5e7eb' } } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+                    }
+                }
+            });
+
+            // ---------------------- 3. 阻碍因素图 ----------------------
+            new Chart(document.getElementById('barrierChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['价格虚高', '设计老旧', '不够实用', '渠道缺失', '真伪难辨'],
+                    datasets: [{
+                        data: [78, 62, 45, 30, 15],
+                        backgroundColor: ['#8b2b22', '#a33b32', '#c16d66', '#d9a09a', '#f1d2cf'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                        y: { ticks: { color: '#9ca3af' } }
+                    }
+                }
+            });
+
+            // ---------------------- 4. 应用场景图 ----------------------
+           new Chart(document.getElementById('sceneChart'), {
+               type: 'polarArea',
+               data: {
+                   labels: ['社交礼赠', '居家艺术', '办公手账', '收藏'],
+                  datasets: [{ data: [40, 30, 20, 10], backgroundColor: ['#8b2b22', '#a33b32', '#c16d66', '#e5e1da'] }]
+            },
+            options: { maintainAspectRatio: false, scales: { r: { display: false } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+        });
+        };
+    </script>
+
+    <section id="lab" class="pt-24 pb-20 px-6 bg-[#fcfaf7]">
+        <style>
+            /* 核心修复：确保按钮点击灵敏 */
+            .style-btn {
+                background-color: #f9f9f9;
+                border: 2px solid transparent;
+                border-radius: 2rem;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 1.5rem 1rem;
+                cursor: pointer;
+                position: relative;
+                z-index: 10;
+            }
+            
+            /* 防止子元素拦截点击事件 */
+            .style-btn * { pointer-events: none; }
+
+            .active-style {
+                border-color: #8b2b22 !important;
+                background-color: #ffffff !important;
+                box-shadow: 0 12px 24px rgba(139, 43, 34, 0.1);
+                transform: translateY(-4px);
+            }
+
+            /* 宣纸纹理容器 */
+            .canvas-container { 
+                background-image: url('https://www.transparenttextures.com/patterns/handmade-paper.png');
+                background-color: #f2f0e9;
+            }
+
+            /* 进度条美化 */
+            input[type=range] { appearance: none; background: #e5e7eb; height: 4px; border-radius: 2px; }
+            input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: #8b2b22; border-radius: 50%; cursor: pointer; }
+        </style>
+
+        <div class="max-w-7xl mx-auto">
+            <header class="text-center mb-12">
+                <h2 class="text-4xl font-black serif text-[#8b2b22] mb-4">云染墨图实验台</h2>
+                <p class="text-stone-500 max-w-2xl mx-auto text-sm">基于阿里云通义千问VL-Plus模型打造,上传个性图片,即刻生成兼具质感与美感的古纸风格新画</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
+                <div class="lg:col-span-5 flex flex-col gap-6">
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100 flex-1">
+                        <label class="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-6">Step 01. 风格配置</label>
+                        
+                        <div class="border-2 border-dashed border-stone-200 rounded-[2rem] p-6 text-center cursor-pointer hover:border-[#8b2b22] hover:bg-stone-50 transition-all mb-8 flex flex-col items-center justify-center min-height-[160px]" 
+                            onclick="document.getElementById('imgInput').click()">
+                            <input type="file" id="imgInput" class="hidden" accept="image/*" onchange="handleImageUpload(this)">
+                            <div id="uploadPlaceholder" class="py-4">
+                                <i class="fas fa-image text-4xl text-stone-200 mb-3"></i>
+                                <p class="text-sm text-stone-600 font-bold serif">点击上传或拖拽图片</p>
+                                <p class="text-[10px] text-stone-400 mt-1">支持 JPG / PNG 格式</p>
+                            </div>
+                            <img id="userPreview" class="hidden max-h-32 rounded-xl shadow-md border-4 border-white">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button type="button" onclick="selectStyle(this, '中国画风格，生宣纸质感，墨色洇散效果')" class="style-btn active-style">
+                                <img src="徽州宣纸.png" class="w-12 h-12 rounded-full border-2 border-white shadow-sm mb-3">
+                                <span class="font-bold text-sm text-stone-800 serif">徽州生宣</span>
+                                <span class="text-[10px] text-stone-400">水墨洇散效果</span>
+                            </button>
+                            <button type="button" onclick="selectStyle(this, '古旧构皮纸质感，粗糙纤维纹理')" class="style-btn">
+                                <img src="贵州皮纸.png" class="w-12 h-12 rounded-full border-2 border-white shadow-sm mb-3">
+                                <span class="font-bold text-sm text-stone-800 serif">贵州皮纸</span>
+                                <span class="text-[10px] text-stone-400">纤维粗犷厚重</span>
+                            </button>
+                            <button type="button" onclick="selectStyle(this, '竹纸质感，细腻竹纤维纹理')" class="style-btn">
+                                <img src="棠岙竹纸.png" class="w-12 h-12 rounded-full border-2 border-white shadow-sm mb-3">
+                                <span class="font-bold text-sm text-stone-800 serif">棠岙竹纸</span>
+                                <span class="text-[10px] text-stone-400">竹纹细腻温润</span>
+                            </button>
+                            <button type="button" onclick="selectStyle(this, '西北毛边纸，粗糙边缘质感')" class="style-btn">
+                                <img src="西北毛边.png" class="w-12 h-12 rounded-full border-2 border-white shadow-sm mb-3">
+                                <span class="font-bold text-sm text-stone-800 serif">西北毛边</span>
+                                <span class="text-[10px] text-stone-400">边缘质朴吸水</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100">
+                        <label class="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-6">Step 02. 手动修缮</label>
+                        <div class="space-y-6">
+                            <div class="bg-stone-50 p-4 rounded-2xl space-y-4">
+                                <div class="flex justify-between text-[11px] font-bold text-stone-500"><span>亮度 BRIGHTNESS</span><span id="val-b">100%</span></div>
+                                <input type="range" id="brightness" min="0" max="200" value="100" class="w-full accent-[#8b2b22]" oninput="renderLocal()">
+                                <div class="flex justify-between text-[11px] font-bold text-stone-500"><span>对比度 CONTRAST</span><span id="val-c">100%</span></div>
+                                <input type="range" id="contrast" min="0" max="200" value="100" class="w-full accent-[#8b2b22]" oninput="renderLocal()">
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="addSeal()" id="sealBtn" disabled class="flex-1 py-4 border-2 border-[#8b2b22] text-[#8b2b22] text-xs font-black rounded-2xl hover:bg-[#8b2b22] hover:text-white transition-all disabled:opacity-20">
+                                    <i class="fas fa-stamp mr-1"></i> 加盖印章
+                                </button>
+                                <button onclick="resetLocalModifications()" id="resetBtn" disabled class="px-6 py-4 bg-stone-100 text-stone-400 rounded-2xl hover:bg-stone-200 transition-all">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button id="generateBtn" onclick="callBailianAPI()" class="flex-[3] py-5 rounded-[2rem] bg-[#8b2b22] text-white font-black text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                            开始云染定制
+                        </button>
+                        <button id="downloadBtn" disabled onclick="downloadResult()" class="flex-1 py-5 rounded-[2rem] bg-stone-900 text-white shadow-xl hover:bg-black transition-all disabled:opacity-30 text-center">
+                            <i class="fas fa-download text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7">
+                    <div id="displayContainer" class="ai-card canvas-container p-4 md:p-10 rounded-[4rem] border-[12px] border-white aspect-[4/5] relative flex flex-col items-center justify-center overflow-hidden shadow-2xl">
+                        <canvas id="mainCanvas" class="max-w-full max-h-full drop-shadow-2xl rounded-sm"></canvas>
+
+                        <div id="state-init" class="absolute inset-0 flex flex-col items-center justify-center bg-stone-50/40 backdrop-blur-[2px]">
+                            <i class="fas fa-palette text-7xl text-stone-200 mb-6"></i>
+                            <p class="serif italic text-stone-400 text-xl font-medium">请先于左侧上传图片</p>
+                        </div>
+
+                        <div id="state-loading" class="hidden absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
+                            <div class="w-20 h-20 border-4 border-[#8b2b22] border-t-transparent rounded-full animate-spin mb-6"></div>
+                            <p class="serif text-[#8b2b22] text-2xl font-black animate-pulse">正在调用通义千问模型进行渲染...</p>
+                        </div>
+
+                        <div id="state-error" class="hidden absolute inset-0 bg-red-50/95 flex flex-col items-center justify-center z-50 p-12 text-center">
+                            <i class="fas fa-exclamation-circle text-5xl text-red-600 mb-6"></i>
+                            <h3 class="text-red-800 font-black text-2xl serif mb-3">云端调用受限</h3>
+                            <p class="text-red-600/70 mb-8">模型当前调用量过载，您可以继续选择手动修缮</p>
+                            <button onclick="switchState('default')" class="px-10 py-3 bg-red-600 text-white rounded-full font-bold shadow-lg">返回工作台</button>
+                        </div>
+                    </div>
+                    <p class="text-center text-[11px] text-stone-400 mt-8 serif italic tracking-[0.4em] uppercase">注意：生成过程约需5~10秒，请耐心等待</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const BAILIAN_API_KEY = "sk-d924a601f99a41c5982cf444df447664"; 
+        const BAILIAN_APP_ID = "8dc378428779495da1b16e2b6d530d2b";  
+
+        let originalImage = null; 
+        let currentPrompt = "中国画风格，生宣纸质感，墨色洇散效果";
+        let hasSeal = false;
+
+        // 上传并初始化
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    document.getElementById('userPreview').src = e.target.result;
+                    document.getElementById('userPreview').classList.remove('hidden');
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('state-init').classList.add('hidden');
+                    
+                    document.getElementById('sealBtn').disabled = false;
+                    document.getElementById('resetBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = false;
+                    
+                    renderLocal();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 风格选择
+        function selectStyle(btn, prompt) {
+            document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active-style'));
+            btn.classList.add('active-style');
+            currentPrompt = prompt;
+        }
+
+        // 重置
+        function resetLocalModifications() {
+            if (!originalImage) return;
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            hasSeal = false;
+            renderLocal();
+        }
+
+        // 渲染画面
+        function renderLocal() {
+            if (!originalImage) return;
+            const b = document.getElementById('brightness').value;
+            const c = document.getElementById('contrast').value;
+            
+            document.getElementById('val-b').innerText = b + '%';
+            document.getElementById('val-c').innerText = c + '%';
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.filter = `brightness(${b}%) contrast(${c}%)`;
+            ctx.drawImage(originalImage, 0, 0);
+            
+            if (hasSeal) drawSeal();
+        }
+
+        // 绘制印章
+        function drawSeal() {
+            const size = Math.min(canvas.width, canvas.height) * 0.15;
+            const x = canvas.width - size - 40;
+            const y = canvas.height - size - 40;
+            ctx.save();
+            ctx.filter = 'none';
+            ctx.strokeStyle = '#8b2b22';
+            ctx.lineWidth = size * 0.05;
+            ctx.strokeRect(x, y, size, size);
+            ctx.fillStyle = '#8b2b22';
+            ctx.font = `bold ${size * 0.35}px "Noto Serif SC", serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('纸上', x + size/2, y + size/2 + size*0.1);
+            ctx.fillText('智绘', x + size/2, y + size/2 + size*0.4);
+            ctx.restore();
+        }
+
+        function addSeal() {
+            hasSeal = true;
+            renderLocal();
+        }
+
+        // API 调用
+        async function callBailianAPI() {
+            if (!originalImage) return;
+            switchState('loading');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000); 
+
+            try {
+                const response = await fetch(`https://dashscope.aliyuncs.com/api/v1/apps/${BAILIAN_APP_ID}/completion`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${BAILIAN_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        input: { prompt: currentPrompt, image_url: canvas.toDataURL() }
+                    }),
+                    signal: controller.signal
+                });
+
+                const data = await response.json();
+                if (response.status === 429 || (data.code && data.code.includes("Quota"))) throw new Error("Quota");
+
+                if (data.output && (data.output.text || data.output.url)) {
+                    const aiImg = new Image();
+                    aiImg.crossOrigin = "anonymous";
+                    aiImg.onload = () => {
+                        originalImage = aiImg; 
+                        renderLocal();
+                        switchState('default');
+                    };
+                    aiImg.src = data.output.url || data.output.text;
+                } else {
+                    throw new Error("Timeout");
+                }
+            } catch (e) {
+                switchState('error');
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        function switchState(state) {
+            document.getElementById('state-loading').classList.toggle('hidden', state !== 'loading');
+            document.getElementById('state-error').classList.toggle('hidden', state !== 'error');
+        }
+
+        function downloadResult() {
+            const link = document.createElement('a');
+            link.download = '纸上智绘_成果导出.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+
+    <footer class="py-20 text-center bg-white border-t border-stone-100">
+        <p class="text-[10px] text-stone-400 font-bold uppercase tracking-[0.5em]">纸上智绘 · 古法造纸类非遗传承与保护研究小组</p>
+    </footer>
+</body>
+</html>
