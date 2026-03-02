@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>骑手驿站 · 美团外卖 · 暖心中转站</title>
+    <!-- 外部资源 (保留图表库但不再使用，或可移除；但保留以防万一) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- 移除 chart.js 引用，因为不再需要图表；但为精简保留也不影响，不调用即可 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+    
+    <!-- Tailwind 配置：修改为美团黄主色调 -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#FFFAE6',  // 淡黄
+                            100: '#FFF2CC',
+                            200: '#FFE699',
+                            300: '#FFD966',
+                            400: '#FFCB3F',
+                            500: '#FFC107',  // 美团黄主色
+                            600: '#E0A800',
+                            700: '#C69500',
+                            800: '#AD7F00',
+                            900: '#7A5C00',
+                        },
+                        secondary: {
+                            50: '#FFF1E0',  // 橙色辅助
+                            100: '#FFE0C2',
+                            200: '#FFC28C',
+                            300: '#FFA655',
+                            400: '#FF8F2E',
+                            500: '#FF7700',  // 活力橙
+                            600: '#E06A00',
+                            700: '#B85700',
+                            800: '#9F4A00',
+                            900: '#733500',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.7s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        .section-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+        
+        .section-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #FFC107 0%, #FF7700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: linear-gradient(90deg, #FFC107 0%, #FF7700 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            z-index: 50;
+            transition: width 0.3s ease;
+        }
+        
+        /* 全景容器样式（融合第二个网页的特性） */
+        .pano-iframe-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 比例 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            background-color: #f1e9da; /* 衬底 */
+        }
+        .pano-iframe-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 快速导航条保留 */
+        .quick-nav {
+            background: rgba(255, 243, 205, 0.95); /* 半透明黄 */
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #FFE08C;
+        }
+        .dark .quick-nav {
+            background: rgba(80, 60, 30, 0.95);
+            border-bottom: 1px solid #7A5C00;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
+    <!-- 进度条 -->
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <!-- 快速导航条 (更新为骑手驿站版块) -->
+    <div class="quick-nav sticky top-0 z-30 py-3 transition-all duration-300">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center space-x-6 overflow-x-auto">
+                <a href="#intro" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap">项目概述</a>
+                <a href="#panorama" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap">全景体验</a>
+                <a href="#facilities" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap">核心设施</a>
+                <a href="#data" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap">项目数据</a>
+                <a href="#cooperation" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors whitespace-nowrap">合作加入</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导航栏 -->
+    <nav class="sticky top-10 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-store text-primary-600 dark:text-primary-400 text-xl"></i>
+                <span class="font-semibold text-lg">美团外卖 · 骑手驿站</span>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- 主题切换按钮 -->
+                <button id="themeToggle" class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-moon text-gray-700 dark:text-yellow-400"></i>
+                </button>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单 -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-2">
+            <div class="flex flex-col space-y-2">
+                <a href="#intro" class="py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">项目概述</a>
+                <a href="#panorama" class="py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">全景体验</a>
+                <a href="#facilities" class="py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">核心设施</a>
+                <a href="#data" class="py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">项目数据</a>
+                <a href="#cooperation" class="py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">合作加入</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- 标题区域 (hero) -->
+        <header class="text-center mb-12 py-12 animate-slide-up">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 gradient-text">骑手驿站 · 暖心中转站</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">美团外卖骑手关爱项目 · 累了能歇脚，渴了能喝水，没电能充电，饭菜能加热</p>
+            
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <div class="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-4 py-2 rounded-full flex items-center">
+                    <i class="fas fa-bicycle mr-2"></i>
+                    <span>全国骑手共同的港湾</span>
+                </div>
+                <div class="bg-secondary-50 dark:bg-secondary-900/30 text-secondary-700 dark:text-secondary-300 px-4 py-2 rounded-full flex items-center">
+                    <i class="fas fa-heart mr-2"></i>
+                    <span>已服务超过 200 万 骑手</span>
+                </div>
+            </div>
+            
+            <div class="flex justify-center mt-8">
+                <a href="#panorama" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-all transform hover:-translate-y-1 flex items-center group">
+                    <span>立即体验全景驿站</span>
+                    <i class="fas fa-arrow-down ml-2 group-hover:animate-bounce-slow"></i>
+                </a>
+            </div>
+        </header>
+        
+        <!-- 项目简介部分 (原摘要) -->
+        <section id="intro" class="mb-16 section-animate">
+            <div class="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-800 rounded-2xl p-8 shadow-lg">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4">
+                        <i class="fas fa-info-circle text-primary-600 dark:text-primary-400"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">关于骑手驿站</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <p class="text-gray-700 dark:text-gray-300">
+                            骑手驿站是美团外卖发起的<strong class="text-primary-600 dark:text-primary-400">综合性骑手关爱项目</strong>，旨在为奔波在城市街头的外卖骑手提供一个免费、舒适、便捷的休憩空间。每一个驿站都配备基础服务设施，并联合爱心商家共同维护。
+                        </p>
+                        
+                        <p class="text-gray-700 dark:text-gray-300">
+                            截至2026年2月，全国已落地<strong class="text-primary-600">1,200+</strong>家骑手驿站，覆盖超过<strong class="text-primary-600">150座</strong>城市，日均服务骑手超过<strong class="text-primary-600">8万人次</strong>。未来三年计划拓展至5000家，打造“15分钟骑手关爱圈”。
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-800 dark:text-white">驿站标准配置</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>冷暖空调 / 休息桌椅</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>免费饮用水 / 微波炉加热</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>手机充电 / 应急药箱</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>雨衣租借 / 车辆简易维修</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 全景展示区 (融合第二个网页) -->
+        <section id="panorama" class="mb-16 section-animate">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4">
+                    <i class="fas fa-360-degrees text-primary-600 dark:text-primary-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">驿站内部全景 · 沉浸式体验</h2>
+            </div>
+            
+            <!-- 全景卡片 (融合第二个网页的风格) -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-primary-200 dark:border-primary-800 p-4">
+                <div class="pano-iframe-wrapper">
+                    <iframe 
+                        src="https://www.720yun.com/vr/943jt7twtO7" 
+                        allowfullscreen="true" 
+                        mozallowfullscreen="true" 
+                        webkitallowfullscreen="true">
+                    </iframe>
+                </div>
+                <div class="mt-5 px-2 text-gray-600 dark:text-gray-300 flex justify-between items-center">
+                    <span><i class="fas fa-mouse-pointer text-primary-500 mr-2"></i>可拖拽旋转视角，沉浸式探索驿站空间（示例场景）</span>
+                    <span class="text-sm bg-primary-100 dark:bg-primary-900/40 px-3 py-1 rounded-full">720°全景</span>
+                </div>
+                <!-- 描述文字致敬第二个页面，但内容贴合驿站 -->
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic border-l-4 border-primary-400 pl-4">
+                    本全景为“纸上智绘”合作示例，真实驿站场景即将上线。您可以提前感受温馨空间——从休憩区到补给站，每一处都体现对骑手的关怀。
+                </p>
+            </div>
+        </section>
+        
+        <!-- 核心设施 (grid卡片) -->
+        <section id="facilities" class="mb-16 section-animate">
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-full bg-secondary-100 dark:bg-secondary-900 flex items-center justify-center mr-4">
+                    <i class="fas fa-couch text-secondary-600 dark:text-secondary-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">驿站核心设施</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+                <!-- 休息区 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-md card-hover border-t-4 border-primary-400 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center mb-3">
+                        <i class="fas fa-chair text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white mb-1">休息专区</h3>
+                    <p class="text-xs text-gray-500">舒适座椅、空调、安静环境</p>
+                </div>
+                <!-- 充电区 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-md card-hover border-t-4 border-primary-400 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center mb-3">
+                        <i class="fas fa-bolt text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white mb-1">快速充电</h3>
+                    <p class="text-xs text-gray-500">多接口充电、共享充电宝</p>
+                </div>
+                <!-- 热饭饮水 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-md card-hover border-t-4 border-primary-400 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center mb-3">
+                        <i class="fas fa-mug-hot text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white mb-1">热水/微波炉</h3>
+                    <p class="text-xs text-gray-500">24h热水、饭菜加热</p>
+                </div>
+                <!-- 应急维修 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-md card-hover border-t-4 border-primary-400 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center mb-3">
+                        <i class="fas fa-tools text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 dark:text-white mb-1">简易维修</h3>
+                    <p class="text-xs text-gray-500">打气筒、维修工具、应急药品</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 项目数据 (移除复杂图表，用数据卡片) -->
+        <section id="data" class="mb-16 section-animate">
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-4">
+                    <i class="fas fa-chart-simple text-green-600 dark:text-green-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">项目数据 · 爱的足迹</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+                <div class="bg-gradient-to-br from-primary-100 to-yellow-50 dark:from-primary-900/30 dark:to-gray-800 rounded-xl p-6 text-center shadow">
+                    <div class="text-3xl font-bold text-primary-700 dark:text-primary-300">1,200+</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">已落地驿站</div>
+                </div>
+                <div class="bg-gradient-to-br from-secondary-100 to-orange-50 dark:from-secondary-900/30 dark:to-gray-800 rounded-xl p-6 text-center shadow">
+                    <div class="text-3xl font-bold text-secondary-700 dark:text-secondary-300">150+</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">覆盖城市</div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-gray-800 rounded-xl p-6 text-center shadow">
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">200万+</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">服务骑手人次</div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-gray-800 rounded-xl p-6 text-center shadow">
+                    <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">8万</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">日均服务量</div>
+                </div>
+            </div>
+            
+            <!-- 额外数据说明 -->
+            <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap">
+                <span class="text-gray-600 dark:text-gray-300"><i class="fas fa-store text-primary-500 mr-2"></i>合作爱心商家超 6500 家</span>
+                <span class="text-gray-600 dark:text-gray-300"><i class="fas fa-bolt text-primary-500 mr-2"></i>累计提供充电服务 150万+ 次</span>
+                <span class="text-gray-600 dark:text-gray-300"><i class="fas fa-water text-primary-500 mr-2"></i>免费饮水 400吨+</span>
+            </div>
+        </section>
+        
+        <!-- 合作加入部分 (原法律规制/行业治理替换) -->
+        <section id="cooperation" class="mb-16 section-animate">
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mr-4">
+                    <i class="fas fa-handshake text-red-600 dark:text-red-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">成为驿站合作伙伴</h2>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- 商家参与 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center mr-4">
+                            <i class="fas fa-shop text-primary-600 text-xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-lg">爱心商家入驻</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">如果您是商户，愿意为骑手提供一杯水、一张椅子，即可申请成为“骑手驿站”合作点。美团提供统一标识、宣传支持，并纳入骑手APP地图推荐。</p>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400 mb-5">
+                        <li><i class="fas fa-check text-primary-500 w-5"></i> 免费获得“骑手驿站”官方认证牌</li>
+                        <li><i class="fas fa-check text-primary-500 w-5"></i> 线上流量曝光，吸引更多骑手到店</li>
+                        <li><i class="fas fa-check text-primary-500 w-5"></i> 共同参与公益，提升品牌形象</li>
+                    </ul>
+                    <button class="w-full bg-primary-500 hover:bg-primary-600 text-white py-2 rounded-lg transition-colors">立即申请合作</button>
+                </div>
+                
+                <!-- 社区/政府合作 -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-secondary-100 dark:bg-secondary-900/40 flex items-center justify-center mr-4">
+                            <i class="fas fa-building-flag text-secondary-600 text-xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-lg">街道/园区共建</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">欢迎街道办、物业、园区提供闲置空间，共建标准化骑手驿站。美团提供软装设计、运营支持及部分物资。</p>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400 mb-5">
+                        <li><i class="fas fa-check text-secondary-500 w-5"></i> 共建“15分钟骑手服务圈”</li>
+                        <li><i class="fas fa-check text-secondary-500 w-5"></i> 可根据实际情况定制设施</li>
+                        <li><i class="fas fa-check text-secondary-500 w-5"></i> 政府/社区公益项目挂牌</li>
+                    </ul>
+                    <button class="w-full bg-secondary-500 hover:bg-secondary-600 text-white py-2 rounded-lg transition-colors">洽谈共建</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 结语部分 (原结论修改) -->
+        <section class="mb-16 section-animate">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-8 text-center">
+                <h2 class="text-2xl font-bold mb-6">让每一程奔波，都有一处温暖停靠</h2>
+                <p class="text-lg max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
+                    骑手驿站不仅是一处空间，更是城市温度的体现。美团外卖将持续联合社会力量，完善骑手保障体系，让关爱落到实处。
+                </p>
+
+                <div class="mt-10 flex justify-center">
+                    <button id="backToTop" class="bg-primary-500/10 hover:bg-primary-500/20 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-medium transition-all transform hover:-translate-y-1 flex items-center">
+                        <i class="fas fa-arrow-up mr-2"></i>
+                        <span>返回顶部</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 合作伙伴/鸣谢 (原参考文献替换) -->
+        <section id="references" class="mb-16 section-animate">   <!-- 保留id避免导航失效，但内容替换 -->
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-4">
+                    <i class="fas fa-heart text-gray-600 dark:text-gray-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">特别鸣谢</h2>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <ul class="space-y-3 text-gray-700 dark:text-gray-300">
+                    <li class="flex"><span class="font-medium mr-2">•</span> 全国所有参与骑手驿站的爱心商家与社区</li>
+                    <li class="flex"><span class="font-medium mr-2">•</span> 720yun 提供全景技术支持（示例场景:纸上智绘）</li>
+                    <li class="flex"><span class="font-medium mr-2">•</span> 美团外卖骑手关怀项目组</li>
+                    <li class="flex"><span class="font-medium mr-2">•</span> 北京市亦庄·骑手暖心驿站 (示范点)</li>
+                    <li class="flex"><span class="font-medium mr-2">•</span> 视觉设计支持: 美团品牌设计中心</li>
+                </ul>
+                <p class="text-sm text-gray-400 mt-5 italic">本项目持续开放合作，欢迎更多力量加入。</p>
+            </div>
+        </section>
+    </main>
+   
+    <!-- 页脚 (融合第二个页面的版权感) -->
+    <footer class="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-store text-primary-600 dark:text-primary-400"></i>
+                        <span class="font-semibold">美团外卖 · 骑手驿站</span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        让城市更有温度，让骑手更有归属
+                    </p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span class="ml-1 text-sm">附近驿站</span>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                        <i class="fas fa-hand-holding-heart"></i>
+                        <span class="ml-1 text-sm">加入支持</span>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                        <i class="fas fa-envelope"></i>
+                        <span class="ml-1 text-sm">联系项目组</span>
+                    </a>
+                </div>
+            </div>
+            <div class="text-center text-xs text-gray-400 mt-6">
+                &copy; 2026 美团外卖 · 骑手驿站项目 | 全景技术支持: 720yun (展示示例)
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 移除图表提示框等无用元素 -->
+    
+    <script>
+        // 页面滚动进度条
+        window.addEventListener('scroll', function() {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+            
+            // 滚动动画
+            const sections = document.querySelectorAll('.section-animate');
+            sections.forEach(section => {
+                const sectionTop = section.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                if (sectionTop < windowHeight * 0.75) {
+                    section.classList.add('section-visible');
+                }
+            });
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 触发一次滚动事件以初始化可见部分
+            window.dispatchEvent(new Event('scroll'));
+            
+            // 初始化移动端菜单
+            initMobileMenu();
+            
+            // 初始化主题切换
+            initThemeToggle();
+            
+            // 返回顶部按钮
+            document.getElementById('backToTop')?.addEventListener('click', function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+        
+        // 初始化移动端菜单
+        function initMobileMenu() {
+            const btn = document.getElementById('mobileMenuBtn');
+            const menu = document.getElementById('mobileMenu');
+            
+            if (btn && menu) {
+                btn.addEventListener('click', function() {
+                    menu.classList.toggle('hidden');
+                });
+            }
+        }
+        
+        // 初始化主题切换 (完全保留)
+        function initThemeToggle() {
+            const toggle = document.getElementById('themeToggle');
+            if (!toggle) return;
+            
+            const icon = toggle.querySelector('i');
+            
+            // 检查本地存储中的主题偏好
+            if (localStorage.getItem('theme') === 'dark' || 
+                (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                document.documentElement.classList.remove('dark');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+            
+            toggle.addEventListener('click', function() {
+                document.documentElement.classList.toggle('dark');
+                
+                if (document.documentElement.classList.contains('dark')) {
+                    localStorage.setItem('theme', 'dark');
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
+        }
+
+        // 移除所有图表相关函数，保持干净
+    </script>
+</body>
+</html>
