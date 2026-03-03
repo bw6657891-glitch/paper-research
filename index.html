@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>骑点驿站 · 交互式品牌宣传展厅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#FFFBEB',
+                            100: '#FEF3C7',
+                            200: '#FDE68A',
+                            300: '#FCD34D',
+                            400: '#FBBF24',
+                            500: '#FFC107', // 标准美团黄
+                            600: '#D9A406',
+                            700: '#B48905',
+                            800: '#927004',
+                            900: '#785C04',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .section-animate { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
+        .section-visible { opacity: 1; transform: translateY(0); }
+        .pano-iframe-wrapper { position: relative; padding-bottom: 45%; height: 0; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .pano-iframe-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .img-card { overflow: hidden; border-radius: 12px; position: relative; transition: all 0.3s ease; cursor: pointer; }
+        .img-card:hover img { transform: scale(1.05); }
+        .img-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); opacity: 0.8; transition: opacity 0.3s; }
+
+        /* 新增交互模块样式 (源自参考) */
+        .map-wrapper { position: relative; width: 100%; background: #f8f5f0; border-radius: 24px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .base-map { width: 100%; height: auto; display: block; pointer-events: none; }
+        .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .map-hotspot {
+            position: absolute; width: 20px; height: 20px; background: #FFC107; border: 3px solid white; border-radius: 50%;
+            transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; pointer-events: auto;
+            transition: all 0.2s; animation: breathe 2s infinite ease-in-out; z-index: 10;
+        }
+        .map-hotspot:hover { background: #e0a800; transform: translate(-50%, -50%) scale(1.3); }
+        @keyframes breathe {
+            0% { box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255,193,7,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+        }
+        .museum-tab-active { background: #FFC107 !important; color: black !important; font-weight: bold; }
+        .history-card { transition: opacity 0.4s; }
+        .era-image { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+        .process-img { width: 100%; height: 100%; object-fit: cover; border-radius: 32px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #FFC107; border-radius: 20px; }
+        .dark .map-wrapper { background: #1f2937; border-color: #374151; }
+        .dark .map-hotspot { border-color: #1f2937; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <nav class="sticky top-0 z-50 bg-primary-500 py-3 px-6 shadow-md">
+        <div class="container mx-auto flex justify-between items-center text-black">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-bicycle text-2xl"></i>
+                <span class="font-black text-xl tracking-tight"> 骑点创客· 骑手驿站</span>
+            </div>
+            <div class="hidden md:flex space-x-6 font-bold text-sm">
+                <a href="#panorama" class="hover:opacity-70">驿站全景</a>
+                <a href="#museum" class="hover:opacity-70">项目概览</a>
+                <a href="#map" class="hover:opacity-70">区域分布</a>
+                <a href="#facilities" class="hover:opacity-70">核心功能</a>
+                <a href="#process" class="hover:opacity-70">特色服务</a>
+                <a href="#contact" class="hover:opacity-70">加入我们</a>
+            </div>
+            <button id="themeToggle" class="bg-black/10 p-2 rounded-full w-10 h-10 flex items-center justify-center">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <header class="bg-primary-500 pt-16 pb-24 px-4 text-center">
+        <h1 class="text-4xl md:text-6xl font-black text-black mb-6 uppercase tracking-tighter">让每一程奔波，都有温暖停靠</h1>
+        <p class="text-lg md:text-xl text-black/80 max-w-2xl mx-auto font-medium">参考《驿站实施方案》打造的“1+4”标准化骑手服务体系</p>
+    </header>
+
+    <main class="container mx-auto px-4 -mt-12">
+        
+        <!-- 全景展示模块 (保留) -->
+        <section id="panorama" class="mb-16 section-animate">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl">
+                <div class="flex items-center mb-4 px-2">
+                    <span class="bg-primary-500 text-black px-3 py-1 rounded-full text-xs font-bold mr-3">720° VR</span>
+                    <h2 class="text-xl font-bold">驿站内部全景展示</h2>
+                </div>
+                <div class="pano-iframe-wrapper">
+                    <iframe src="https://www.720yun.com/vr/122jt7myOy2" allowfullscreen></iframe>
+                </div>
+                <p class="mt-4 text-sm text-gray-500 italic flex items-center">
+                    <i class="fas fa-info-circle mr-2"></i> 方案设计：动静分区布局。外侧为繁忙区（补给），内侧为静区（休息）。
+                </p>
+            </div>
+        </section>
+
+        <!-- ========= 新增交互模块1：驿站发展历程 ========= -->
+        <section id="museum" class="mb-16 section-animate py-8 bg-stone-50 dark:bg-gray-800 rounded-3xl px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+                    <div class="max-w-xl">
+                        <h2 class="text-3xl font-black text-gray-900 dark:text-white mb-2">驿站发展历程</h2>
+                        <p class="text-stone-500 dark:text-stone-400 text-sm leading-relaxed">从试点摸索到智能化运营，骑手驿站不断升级，始终与骑手并肩前行</p>
+                    </div>
+                    <div class="flex bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-inner border border-stone-200 dark:border-stone-700 overflow-x-auto">
+                        <button onclick="switchEra('start')" id="era-start" class="era-btn museum-tab-active px-5 py-2 rounded-full text-xs font-bold transition-all">试点期(2018)</button>
+                        <button onclick="switchEra('spread')" id="era-spread" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">推广期(2020)</button>
+                        <button onclick="switchEra('standard')" id="era-standard" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">标准化(2022)</button>
+                        <button onclick="switchEra('smart')" id="era-smart" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">智能化(2024+)</button>
+                    </div>
+                </div>
+
+                <div id="museum-display" class="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl p-8 md:p-12 relative overflow-hidden history-card">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div class="space-y-6">
+                            <div>
+                                <span id="era-tag" class="text-[10px] font-black text-primary-600 uppercase tracking-[0.3em]">2018 · 探索</span>
+                                <h3 id="era-title" class="text-3xl font-bold mt-3 mb-4 dark:text-white">首批试点驿站</h3>
+                                <p id="era-desc" class="text-slate-600 dark:text-slate-300 leading-loose text-sm">2018年，美团外卖在北京望京、上海中山公园等地启动首批5家骑手驿站试点，仅提供基础休息座椅和饮水机，但骑手反响热烈，日均使用超200人次。初步验证了驿站对骑手关怀的必要性。</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-stone-50 dark:bg-gray-700 rounded-2xl border border-stone-100 dark:border-stone-600">
+                                    <p class="text-[10px] text-stone-400 dark:text-stone-300 font-bold mb-2 uppercase">覆盖城市</p>
+                                    <p id="era-material" class="text-sm font-bold">2城</p>
+                                </div>
+                                <div class="p-4 bg-stone-50 dark:bg-gray-700 rounded-2xl border border-stone-100 dark:border-stone-600">
+                                    <p class="text-[10px] text-stone-400 dark:text-stone-300 font-bold mb-2 uppercase">核心功能</p>
+                                    <p id="era-tech" class="text-sm font-bold">休息/饮水</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <div class="aspect-[4/5] bg-stone-50 dark:bg-gray-700 rounded-3xl overflow-hidden flex items-center justify-center p-4 border border-stone-200 dark:border-stone-600 image-container">
+                                <img id="era-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E" alt="驿站发展" class="era-image">
+                            </div>
+                            <p class="text-center text-xs text-stone-500 dark:text-stone-400 mt-2 italic">从简朴到智能，始终温暖</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========= 新增交互模块2：全国骑手驿站分布地图 (呼吸点) ========= -->
+        <section id="map" class="mb-16 section-animate py-8 bg-stone-100 dark:bg-gray-900 rounded-3xl px-4">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-8 border-l-4 border-primary-500 pl-4">
+                    <h2 class="text-3xl font-bold">全国骑手驿站分布</h2>
+                    <p class="text-stone-500 dark:text-stone-400 text-sm mt-1">点击地图上的呼吸点，查看各省驿站特色与服务数据</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- 左侧：地图区域 -->
+                    <div class="lg:col-span-8">
+                        <div class="map-wrapper">
+                            <!-- 需要您放置一张中国地图轮廓图（建议SVG或PNG）到项目目录，命名为 china-map-simple.svg -->
+                         <!-- 直接引用本地SVG文件（推荐方式） -->
+<img 
+  src="杨浦.png" 
+  alt="驿站分布地图" 
+  class="base-map" 
+  id="mapImg"
+  width="800"  
+  height="600" 
+>
+                            
+                            <!-- 交互点定位层 (呼吸点) -->
+                            <div class="overlay-layer">
+                                <!-- 示例省份热点 (位置仅为示意，需根据实际地图微调) -->
+                                <div class="map-hotspot" style="top: 30%; left: 70%;" onclick="loadProvince('北京市')"></div>
+                                <div class="map-hotspot" style="top: 45%; left: 80%;" onclick="loadProvince('上海市')"></div>
+                                <div class="map-hotspot" style="top: 55%; left: 70%;" onclick="loadProvince('广东省')"></div>
+                                <div class="map-hotspot" style="top: 40%; left: 55%;" onclick="loadProvince('四川省')"></div>
+                                <div class="map-hotspot" style="top: 35%; left: 60%;" onclick="loadProvince('陕西省')"></div>
+                                <div class="map-hotspot" style="top: 45%; left: 65%;" onclick="loadProvince('湖北省')"></div>
+                                <div class="map-hotspot" style="top: 50%; left: 75%;" onclick="loadProvince('浙江省')"></div>
+                                <div class="map-hotspot" style="top: 25%; left: 85%;" onclick="loadProvince('黑龙江省')"></div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 italic">* 呼吸点位置为示意，实际部署需配合精确地图</p>
+                    </div>
+
+                    <!-- 右侧：详情面板 -->
+                    <div class="lg:col-span-4 flex flex-col gap-4">
+                        <div class="bg-primary-500 text-black p-6 rounded-3xl shadow-lg">
+                            <h3 id="pTitle" class="text-2xl font-bold mb-2">未选择省份</h3>
+                            <p id="pDesc" class="text-black/70 text-sm leading-relaxed">请点击地图上的呼吸点，查看该省驿站建设情况。</p>
+                        </div>
+                        
+                        <div id="pList" class="flex-1 overflow-y-auto custom-scroll space-y-3 pr-2 max-h-[400px]">
+                            <!-- 列表项由JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 原有功能模块 (facilities) 保持不变 -->
+        <section id="facilities" class="mb-16 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black mb-2">标准化功能模块</h2>
+                <div class="w-16 h-1 bg-primary-500 mx-auto"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 四个卡片内容与原代码一致，略作精简但保留 -->
+                <div class="img-card group h-80 shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&q=80&w=800" alt="能量补给" class="w-full h-full object-cover transition duration-500">
+                    <div class="img-overlay"></div>
+                    <div class="absolute bottom-0 left-0 p-5 text-white">
+                        <span class="bg-primary-500 text-black text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block">忙区 · 核心服务</span>
+                        <h3 class="text-xl font-bold">能量补给站</h3>
+                        <p class="text-sm opacity-90 mt-1">24h热水、免费微波炉、平价简餐</p>
+                    </div>
+                </div>
+                <div class="img-card group h-80 shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1620138546344-7b2c0b051ed0?auto=format&fit=crop&q=80&w=800" alt="智能换电" class="w-full h-full object-cover transition duration-500">
+                    <div class="img-overlay"></div>
+                    <div class="absolute bottom-0 left-0 p-5 text-white">
+                        <span class="bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block">生产 · 增效模块</span>
+                        <h3 class="text-xl font-bold">智能快充/维修</h3>
+                        <p class="text-sm opacity-90 mt-1">智能换电柜、工具箱、车辆简修</p>
+                    </div>
+                </div>
+                <div class="img-card group h-80 shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1517505837942-139040487b50?auto=format&fit=crop&q=80&w=800" alt="深度休憩" class="w-full h-full object-cover transition duration-500">
+                    <div class="img-overlay"></div>
+                    <div class="absolute bottom-0 left-0 p-5 text-white">
+                        <span class="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block">静区 · 舒适空间</span>
+                        <h3 class="text-xl font-bold">深度休憩区</h3>
+                        <p class="text-sm opacity-90 mt-1">冷暖空调、木质家具、静音环境</p>
+                    </div>
+                </div>
+                <div class="img-card group h-80 shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800" alt="法律心理" class="w-full h-full object-cover transition duration-500">
+                    <div class="img-overlay"></div>
+                    <div class="absolute bottom-0 left-0 p-5 text-white">
+                        <span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block">咨询 · 法律援助</span>
+                        <h3 class="text-xl font-bold">法律与心理驿站</h3>
+                        <p class="text-sm opacity-90 mt-1">维权通道、心理疏导、政务办理</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========= 新增交互模块3：驿站服务流程 (标签页科普) ========= -->
+        <section id="process" class="mb-16 section-animate py-8 bg-stone-50 dark:bg-gray-800 rounded-3xl px-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-black mb-2 dark:text-white">驿站服务流程</h2>
+                    <p class="text-stone-400 text-sm tracking-widest uppercase">从入门到休憩，每一步都用心</p>
+                </div>
+
+                <div class="flex justify-center gap-6 border-b border-stone-200 dark:border-stone-700 mb-12 overflow-x-auto pb-4">
+                    <button onclick="showProcess(1)" id="proc-1" class="proc-btn museum-tab-active px-6 py-2 rounded-full text-xs font-bold transition-all">休憩</button>
+                    <button onclick="showProcess(2)" id="proc-2" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">补给</button>
+                    <button onclick="showProcess(3)" id="proc-3" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">充电</button>
+                    <button onclick="showProcess(4)" id="proc-4" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">咨询</button>
+                </div>
+
+                <div id="process-content" class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-[400px]">
+                    <div class="space-y-6">
+                        <h3 id="step-title" class="text-3xl font-bold dark:text-white">休憩</h3>
+                        <p id="step-desc" class="text-slate-500 dark:text-slate-400 leading-loose italic">为骑手提供安静、舒适的休息空间，配备可调节躺椅、降噪耳塞、轻音乐播放器，帮助快速恢复精力。</p>
+                        <div id="step-details" class="space-y-4 pt-4">
+                            <div class="flex items-center gap-4 p-5 bg-white dark:bg-gray-700 shadow-sm rounded-2xl">
+                                <div class="w-10 h-10 bg-primary-500 text-black rounded-full flex items-center justify-center font-bold">1</div>
+                                <span class="text-sm"><b>静音区：</b>隔断设计，减少干扰</span>
+                            </div>
+                            <div class="flex items-center gap-4 p-5 bg-white dark:bg-gray-700 shadow-sm rounded-2xl">
+                                <div class="w-10 h-10 bg-primary-500 text-black rounded-full flex items-center justify-center font-bold">2</div>
+                                <span class="text-sm"><b>助眠：</b>提供眼罩、充气颈枕</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-paper-texture aspect-square rounded-[3rem] border-8 border-white dark:border-gray-600 shadow-2xl flex items-center justify-center relative overflow-hidden image-container">
+                        <img id="step-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M5 13h14v-2H5v2zm0 4h14v-2H5v2zM3 7v2h18V7H3z'/%3E%3C/svg%3E" alt="休憩区" class="w-full h-full object-cover process-img">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 管理模块 (原有) -->
+        <section id="management" class="mb-16 section-animate">
+            <div class="bg-primary-500 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
+                <div class="md:w-1/2 text-black">
+                    <h2 class="text-3xl font-black mb-6">“1+N” 创新管理模式</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-black text-white rounded-full w-6 h-6 flex items-center justify-center mt-1 mr-3 flex-shrink-0 font-bold text-xs">1</div>
+                            <p class="font-medium">每个驿站配备1名专职站长，负责物资监控与巡检。</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-black text-white rounded-full w-6 h-6 flex items-center justify-center mt-1 mr-3 flex-shrink-0 font-bold text-xs">N</div>
+                            <p class="font-medium">吸纳“骑手合伙人”参与自治，实现自我服务与管理。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2 grid grid-cols-2 gap-4">
+                    <div class="bg-white/30 backdrop-blur p-6 rounded-2xl text-center border border-white/20">
+                        <div class="text-4xl font-black text-black">15min</div>
+                        <div class="text-[10px] text-black/60 uppercase font-bold tracking-widest">服务半径</div>
+                    </div>
+                    <div class="bg-white/30 backdrop-blur p-6 rounded-2xl text-center border border-white/20">
+                        <div class="text-4xl font-black text-black">24h</div>
+                        <div class="text-[10px] text-black/60 uppercase font-bold tracking-widest">全天服务</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 新闻动态、成长课堂、爱心商家、荣誉、联系等模块保留 (为避免过长，此处仅保留关键联系模块) -->
+        <section id="news" class="mb-16 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black mb-2">驿站动态 · 最新资讯</h2>
+                <div class="w-16 h-1 bg-primary-500 mx-auto"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
+                    <img src="https://images.unsplash.com/photo-1526676037777-05a232554f77?auto=format&fit=crop&q=80&w=800" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-primary-600 mb-2 block">2026-03-01</span>
+                        <h3 class="text-xl font-bold mb-2">冬季送温暖：暖姜茶供应</h3>
+                        <p class="text-gray-500 text-sm">驿站已上线自动取暖器，并每日熬制新鲜姜茶供骑手免费领取。</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
+                    <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-primary-600 mb-2 block">2026-02-25</span>
+                        <h3 class="text-xl font-bold mb-2">“骑手合伙人”新站挂牌</h3>
+                        <p class="text-gray-500 text-sm">新站点由资深骑手老王担任兼职站长，协助维护日常秩序。</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
+                    <img src="https://images.unsplash.com/photo-1509059852496-f3822ae057bf?auto=format&fit=crop&q=80&w=800" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-primary-600 mb-2 block">2026-02-20</span>
+                        <h3 class="text-xl font-bold mb-2">安全培训：防滑指南</h3>
+                        <p class="text-gray-500 text-sm">驿站邀请交警大队指导员进行线上线下同步的安全讲座。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 荣誉模块 (原) -->
+        <section id="honor" class="mb-16 section-animate">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border-l-8 border-primary-500 flex flex-col md:flex-row items-center gap-10">
+                <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500 flex-shrink-0">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-1">年度优秀合伙人：陈师傅</h3>
+                    <p class="text-gray-500 text-sm italic mb-4">“驿站就像家。我希望让新来的兄弟们感受到城市的温暖。”</p>
+                    <div class="flex gap-4">
+                        <div class="bg-primary-50 dark:bg-primary-900/20 px-4 py-2 rounded-lg text-center">
+                            <div class="font-black text-primary-600">500+</div>
+                            <div class="text-[10px] text-gray-500">志愿时长</div>
+                        </div>
+                        <div class="bg-primary-50 dark:bg-primary-900/20 px-4 py-2 rounded-lg text-center">
+                            <div class="font-black text-primary-600">Lv.5</div>
+                            <div class="text-[10px] text-gray-500">星级合伙人</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 联系模块 -->
+<section id="contact" class="mb-20 section-animate">
+    <div class="bg-primary-500 rounded-3xl p-8 md:p-12 text-center text-black shadow-2xl relative overflow-hidden">
+        <i class="fas fa-heart absolute -bottom-10 -right-10 text-9xl text-black/5 rotate-12"></i>
+        <h2 class="text-3xl md:text-4xl font-black mb-4">联系我们 · 成为志愿者</h2>
+        <p class="max-w-xl mx-auto mb-8 font-medium">无论是提供场地、捐赠物资，还是申请成为驿站站长，您的每一份力量都让这座城市更有温度。</p>
+        
+        <!-- 三个联系方式放在同一行：电话、邮箱、二维码 -->
+        <div class="flex flex-col md:flex-row justify-center gap-6">
+            <!-- 电话卡片 -->
+            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
+                <div class="bg-black text-white p-3 rounded-full"><i class="fas fa-phone"></i></div>
+                <div class="text-left">
+                    <div class="text-xs font-bold opacity-60 uppercase">服务热线</div>
+                    <div class="font-black">400-123-4567</div>
+                </div>
+            </div>
+            <!-- 邮箱卡片 -->
+            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
+                <div class="bg-black text-white p-3 rounded-full"><i class="fas fa-envelope"></i></div>
+                <div class="text-left">
+                    <div class="text-xs font-bold opacity-60 uppercase">官方邮箱</div>
+                    <div class="font-black">station@meituan.com</div>
+                </div>
+            </div>
+            <!-- 二维码卡片（新） -->
+            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
+                <div class="bg-white p-1 rounded-lg flex-shrink-0">
+                    <!-- 请将 src 替换为您的实际二维码图片路径 -->
+                    <img src="images/volunteer-qrcode.png" alt="志愿者二维码" class="w-12 h-12 object-cover">
+                </div>
+                <div class="text-left">
+                    <div class="text-xs font-bold opacity-60 uppercase">扫码加入</div>
+                    <div class="font-black text-sm">志愿者群</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="mt-10 bg-black text-white px-10 py-4 rounded-full font-black text-lg hover:scale-105 transition-transform shadow-lg">
+            提交志愿申请表
+        </button>
+    </div>
+</section>
+
+    </main>
+
+    <footer class="bg-gray-950 text-white py-12 border-t-4 border-primary-500">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start space-x-2 mb-2">
+                    <i class="fas fa-store text-primary-500"></i>
+                    <span class="font-bold">美团骑手驿站项目组</span>
+                </div>
+                <p class="text-gray-500 text-xs uppercase tracking-widest">© 2026 美团配送 · 城市温情计划</p>
+            </div>
+            <div class="flex space-x-6 text-2xl text-gray-500">
+                <i class="fab fa-weixin hover:text-primary-500 cursor-pointer transition-colors"></i>
+                <i class="fab fa-weibo hover:text-primary-500 cursor-pointer transition-colors"></i>
+                <i class="fas fa-phone-alt hover:text-primary-500 cursor-pointer transition-colors"></i>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 交互脚本 (整合原参考逻辑并适配驿站数据) -->
+    <script>
+        // 暗黑模式切换
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const icon = themeToggle.querySelector('i');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+        });
+
+        // 滚动动画观察器
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('section-visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.section-animate').forEach(section => {
+            observer.observe(section);
+        });
+
+        // ----- 驿站发展历程 (博物馆) 数据 -----
+        const eras = {
+            start: {
+                tag: "2018 · 试点期",
+                title: "首批试点驿站",
+                desc: "2018年，美团外卖在北京望京、上海中山公园等地启动首批5家骑手驿站试点，仅提供基础休息座椅和饮水机，但骑手反响热烈，日均使用超200人次。初步验证了驿站对骑手关怀的必要性。",
+                material: "2城",
+                tech: "休息/饮水",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E"
+            },
+            spread: {
+                tag: "2020 · 推广期",
+                title: "全国快速复制",
+                desc: "2020年，驿站进入快速推广阶段，联合爱心商家共建，数量突破200家。服务内容升级：增加微波炉、应急药箱、充电口，并引入“站长制”，由热心骑手或商家店员兼任。",
+                material: "80+城",
+                tech: "基础服务+应急",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5s-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8z'/%3E%3C/svg%3E"
+            },
+            standard: {
+                tag: "2022 · 标准化",
+                title: "“1+4”标准发布",
+                desc: "2022年，发布《骑手驿站建设标准1.0》，规定“1个核心区+4个功能区”（休憩、补给、维修、咨询）。统一标识、设施清单、运营规范，站点数突破800家。",
+                material: "150+城",
+                tech: "标准化运营",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'/%3E%3C/svg%3E"
+            },
+            smart: {
+                tag: "2024+ · 智能化",
+                title: "智慧驿站",
+                desc: "2024年起，试点“智慧驿站”：人脸识别进入、智能物联管理、自动售货机、线上预约心理咨询。实现无人值守、24小时服务，已落地50家智慧旗舰店。",
+                material: "30+智慧站",
+                tech: "IoT/自助服务",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-13v4h5v-4h-5z'/%3E%3C/svg%3E"
+            }
+        };
+
+        function switchEra(eraKey) {
+            document.querySelectorAll('.era-btn').forEach(btn => {
+                btn.classList.remove('museum-tab-active');
+                btn.classList.add('text-stone-400');
+            });
+            document.getElementById(`era-${eraKey}`).classList.add('museum-tab-active');
+            const data = eras[eraKey];
+            const display = document.getElementById('museum-display');
+            display.style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('era-tag').innerText = data.tag;
+                document.getElementById('era-title').innerText = data.title;
+                document.getElementById('era-desc').innerText = data.desc;
+                document.getElementById('era-material').innerText = data.material;
+                document.getElementById('era-tech').innerText = data.tech;
+                document.getElementById('era-image').src = data.image;
+                display.style.opacity = '1';
+            }, 300);
+        }
+
+        // ----- 全国分布地图 (省份数据) -----
+        const provinceData = {
+            "北京市": { desc: "全市已建成80个驿站，覆盖全部行政区。特色：24小时无人驿站、智能换电柜全覆盖。", items: [{ name: "朝阳区望京站", type: "旗舰站", date: "2024" }, { name: "海淀区中关村站", type: "标准站", date: "2023" }, { name: "丰台区总部基地站", type: "标准站", date: "2022" }] },
+            "上海市": { desc: "核心城区每3公里一个驿站，总数120家。特色：国际社区驿站提供多语言服务卡。", items: [{ name: "浦东新区陆家嘴站", type: "旗舰站", date: "2024" }, { name: "闵行区虹桥站", type: "标准站", date: "2023" }, { name: "杨浦区大学路站", type: "合作站", date: "2023" }] },
+            "广东省": { desc: "珠三角驿站网络密集，总量超200家，广州深圳等地试点“骑手公寓+驿站”综合服务体。", items: [{ name: "广州市白云区站", type: "旗舰站", date: "2024" }, { name: "深圳市南山区站", type: "标准站", date: "2023" }, { name: "佛山市禅城站", type: "合作站", date: "2022" }] },
+            "四川省": { desc: "成都、绵阳等城市共75家驿站，部分驿站增设川菜加热区，深受骑手喜爱。", items: [{ name: "成都市锦江区站", type: "标准站", date: "2023" }, { name: "绵阳市涪城站", type: "合作站", date: "2023" }] },
+            "陕西省": { desc: "西安作为西北枢纽，已建45家驿站，提供热水、泡馍加热等特色服务。", items: [{ name: "西安市雁塔区站", type: "旗舰站", date: "2024" }, { name: "宝鸡市渭滨站", type: "标准站", date: "2022" }] },
+            "湖北省": { desc: "武汉、宜昌等地驿站配备电动车快修工具，日均维修服务200+次。", items: [{ name: "武汉市洪山区站", type: "标准站", date: "2023" }, { name: "宜昌市西陵站", type: "合作站", date: "2023" }] },
+            "浙江省": { desc: "杭州、宁波等地驿站与社区服务中心融合，提供政务办理指引。", items: [{ name: "杭州市西湖区站", type: "旗舰站", date: "2024" }, { name: "宁波市鄞州站", type: "标准站", date: "2023" }] },
+            "黑龙江省": { desc: "哈尔滨、大庆等极寒地区驿站配备暖库、加热鞋垫等御寒物资。", items: [{ name: "哈尔滨市南岗站", type: "标准站", date: "2023" }] }
+        };
+
+        function loadProvince(name) {
+            const data = provinceData[name];
+            if (!data) {
+                document.getElementById('pTitle').innerText = name;
+                document.getElementById('pDesc').innerText = "该省份驿站数据正在收集中，敬请期待。";
+                document.getElementById('pList').innerHTML = "";
+                return;
+            }
+            document.getElementById('pTitle').innerText = name;
+            document.getElementById('pDesc').innerText = data.desc;
+            const listHtml = data.items.map(item => `
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 hover:border-primary-500 transition-colors shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] px-2 py-0.5 bg-stone-100 dark:bg-stone-700 text-stone-500 rounded font-bold">${item.date}年</span>
+                        <span class="text-[10px] px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-200 rounded font-bold">${item.type}</span>
+                    </div>
+                    <h4 class="font-bold text-stone-900 dark:text-white mt-2">${item.name}</h4>
+                </div>
+            `).join('');
+            document.getElementById('pList').innerHTML = listHtml;
+        }
+
+        // ----- 服务流程 (技艺厅) 数据 -----
+        const processData = {
+            1: { title: "休憩", desc: "为骑手提供安静、舒适的休息空间，配备可调节躺椅、降噪耳塞、轻音乐播放器，帮助快速恢复精力。", list: ["静音区：隔断设计，减少干扰", "助眠：提供眼罩、充气颈枕"], image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M5 13h14v-2H5v2zm0 4h14v-2H5v2zM3 7v2h18V7H3z'/%3E%3C/svg%3E" },
+            2: { title: "补给", desc: "免费饮用水、微波炉加热、平价能量简餐，随时补充体力。冬季供应姜茶，夏季提供绿豆汤。", list: ["热食：微波炉、开水机", "小食：能量棒、电解质饮料"], image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3z'/%3E%3C/svg%3E" },
+            3: { title: "充电", desc: "多接口手机快充、共享充电宝、电动车智能换电柜，解决用电焦虑。", list: ["手机充电：无线/有线快充", "换电柜：48V/60V兼容"], image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M7 2v11h3v9l7-12h-4l4-8H7z'/%3E%3C/svg%3E" },
+            4: { title: "咨询", desc: "法律援助、心理疏导、政务指引、职业技能培训报名，一站式解决骑手后顾之忧。", list: ["法律：劳动合同纠纷咨询", "心理：专业咨询师驻点"], image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E" }
+        };
+
+        function showProcess(id) {
+            document.querySelectorAll('.proc-btn').forEach(btn => {
+                btn.classList.remove('museum-tab-active');
+                btn.classList.add('text-stone-400');
+            });
+            document.getElementById(`proc-${id}`).classList.add('museum-tab-active');
+            const data = processData[id];
+            const container = document.getElementById('process-content');
+            container.style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('step-title').innerText = data.title;
+                document.getElementById('step-desc').innerText = data.desc;
+                document.getElementById('step-image').src = data.image;
+                let html = '';
+                data.list.forEach((item, i) => {
+                    html += `<div class="flex items-center gap-4 p-5 bg-white dark:bg-gray-700 shadow-sm rounded-2xl"><div class="w-10 h-10 bg-primary-500 text-black rounded-full flex items-center justify-center font-bold">${i+1}</div><span class="text-sm">${item}</span></div>`;
+                });
+                document.getElementById('step-details').innerHTML = html;
+                container.style.opacity = '1';
+            }, 300);
+        }
+
+        // 初始化默认显示
+        window.onload = function() {
+            switchEra('start');
+            showProcess(1);
+            // 可预选一个省份
+            // loadProvince('北京市');
+        };
+    </script>
+</body>
+</html>
