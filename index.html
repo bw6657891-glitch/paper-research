@@ -1,537 +1,673 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="scroll-smooth">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>骑点驿站 · 交互式品牌宣传展厅</title>
+    <title>沪上住梦 · 租就未来 —— 上海新市民租房信息平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#FFFBEB',
-                            100: '#FEF3C7',
-                            200: '#FDE68A',
-                            300: '#FCD34D',
-                            400: '#FBBF24',
-                            500: '#FFC107', // 标准美团黄
-                            600: '#D9A406',
-                            700: '#B48905',
-                            800: '#927004',
-                            900: '#785C04',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        .section-animate { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
-        .section-visible { opacity: 1; transform: translateY(0); }
-        .pano-iframe-wrapper { position: relative; padding-bottom: 45%; height: 0; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .pano-iframe-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-        .img-card { overflow: hidden; border-radius: 12px; position: relative; transition: all 0.3s ease; cursor: pointer; }
-        .img-card:hover img { transform: scale(1.05); }
-        .img-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); opacity: 0.8; transition: opacity 0.3s; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
 
-        /* 新增交互模块样式 (源自参考) */
-        .map-wrapper { position: relative; width: 100%; background: #f8f5f0; border-radius: 24px; overflow: hidden; border: 1px solid #e5e7eb; }
-        .base-map { width: 100%; height: auto; display: block; pointer-events: none; }
-        .overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .map-hotspot {
-            position: absolute; width: 20px; height: 20px; background: #FFC107; border: 3px solid white; border-radius: 50%;
-            transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; pointer-events: auto;
-            transition: all 0.2s; animation: breathe 2s infinite ease-in-out; z-index: 10;
+        :root {
+            --primary: #5b3a29;
+            --primary-light: #7d5540;
+            --accent: #c67b3d;
+            --accent-light: #e8a362;
+            --bg-warm: #fdf8f4;
+            --card-bg: #ffffff;
+            --text-main: #3d2b1f;
+            --text-sub: #6b5a4e;
+            --border-soft: #ede4db;
+            --shadow-card: 0 8px 28px rgba(91, 58, 41, 0.07);
+            --shadow-hover: 0 14px 36px rgba(91, 58, 41, 0.13);
+            --radius-lg: 1.5rem;
+            --radius-md: 1rem;
+            --radius-sm: 0.75rem;
         }
-        .map-hotspot:hover { background: #e0a800; transform: translate(-50%, -50%) scale(1.3); }
-        @keyframes breathe {
-            0% { box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255,193,7,0); }
-            100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+
+        body {
+            font-family: 'Noto Serif SC', 'Inter', 'PingFang SC', serif;
+            background: linear-gradient(180deg, #fdf8f4 0%, #faf5ef 30%, #f7f1ea 100%);
+            color: var(--text-main);
+            min-height: 100vh;
         }
-        .museum-tab-active { background: #FFC107 !important; color: black !important; font-weight: bold; }
-        .history-card { transition: opacity 0.4s; }
-        .era-image { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
-        .process-img { width: 100%; height: 100%; object-fit: cover; border-radius: 32px; }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #FFC107; border-radius: 20px; }
-        .dark .map-wrapper { background: #1f2937; border-color: #374151; }
-        .dark .map-hotspot { border-color: #1f2937; }
+
+        .warm-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            transition: all 0.35s;
+        }
+        .warm-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+        .warm-card-sm {
+            background: var(--card-bg);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 16px rgba(91, 58, 41, 0.04);
+            transition: all 0.3s;
+        }
+        .warm-card-sm:hover { box-shadow: 0 8px 24px rgba(91, 58, 41, 0.09); transform: translateY(-1px); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5b3a29 0%, #7d5540 100%);
+            color: #fff; font-weight: 600; padding: 12px 26px; border-radius: 28px;
+            border: none; cursor: pointer; transition: 0.25s; box-shadow: 0 6px 18px rgba(91,58,41,0.22);
+            display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.02em;
+        }
+        .btn-primary:hover { box-shadow: 0 10px 26px rgba(91,58,41,0.35); transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent; color: #5b3a29; font-weight: 600; padding: 10px 24px;
+            border-radius: 28px; border: 2px solid #c67b3d; cursor: pointer; transition: 0.25s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-outline:hover { background: #fef7f1; border-color: #5b3a29; color: #5b3a29; }
+        .btn-sm { padding: 7px 16px; font-size: 0.8rem; border-radius: 20px; }
+
+        .tag-primary { background: #fef0e4; color: #8b5a2b; border:1px solid #f5d5b0; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+        .tag-blue { background:#eef4fb; color:#3a5f8b; border-color:#c8daf0; }
+        .tag-green { background:#edf7f0; color:#2d6a3f; border-color:#b8dcc4; }
+        .tag-red { background:#fef0ed; color:#8b3a2b; border-color:#f5c8b8; }
+
+        .level-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+        .level-dot.high { background:#2d6a3f; box-shadow:0 0 6px rgba(45,106,63,0.5); }
+        .level-dot.mid { background:#e8a362; box-shadow:0 0 6px rgba(232,163,98,0.5); }
+        .level-dot.low { background:#c67b3d; box-shadow:0 0 6px rgba(198,123,61,0.5); }
+
+        .nav-link { position:relative; transition:color 0.25s; }
+        .nav-link::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:2px; background:#c67b3d; transition:width 0.3s; }
+        .nav-link:hover::after,.nav-link.active::after { width:100%; }
+        .nav-link.active { color:#5b3a29; font-weight:700; }
+
+        .listing-image { width:100%; height:200px; object-fit:cover; border-radius:var(--radius-md) var(--radius-md) 0 0; }
+
+        .score-slider { -webkit-appearance:none; width:100%; height:8px; border-radius:4px; background:linear-gradient(90deg, #d5c8b8 0%, #c67b3d 50%, #5b3a29 100%); outline:none; }
+        .score-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:24px; height:24px; border-radius:50%; background:#fff; border:3px solid #c67b3d; cursor:pointer; }
+        .score-bubble { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; font-weight:900; font-size:0.85rem; }
+        .score-bubble.low { background:#fef0ed; color:#8b3a2b; }
+        .score-bubble.mid { background:#fef7f1; color:#c67b3d; }
+        .score-bubble.high { background:#edf7f0; color:#2d6a3f; }
+
+        .grade-badge { display:inline-flex; align-items:center; padding:6px 18px; border-radius:20px; font-size:0.75rem; font-weight:800; }
+        .grade-s { background:#dcfce7; color:#166534; border:2px solid #86efac; }
+        .grade-a { background:#dbeafe; color:#1e40af; border:2px solid #93c5fd; }
+        .grade-b { background:#fef9c3; color:#854d0e; border:2px solid #fde68a; }
+        .grade-c { background:#ffedd5; color:#9a3412; border:2px solid #fdba74; }
+        .grade-d { background:#fee2e2; color:#991b1b; border:2px solid #fca5a5; }
+
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+        .animate-in { animation:fadeInUp 0.4s ease forwards; }
+        .score-pop { animation: scorePopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes scorePopIn { 0%{transform:scale(0.3);opacity:0;} 60%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }
+
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:100; }
+        .modal-content { background:#fff; border-radius:var(--radius-lg); padding:24px; max-width:420px; width:90%; box-shadow:0 20px 40px rgba(0,0,0,0.2); }
+        .modal-input { width:100%; padding:8px 12px; border:1px solid #ede4db; border-radius:10px; font-size:0.85rem; margin-bottom:8px; }
+
+        .logo-img { max-height: 48px; width: auto; object-fit: contain; }
+
+        /* 修复：雷达图容器必须设置高度 */
+        .radar-container {
+            min-height: 260px;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* 新增：权重提示文字 */
+        .weight-hint {
+            font-size: 10px;
+            color: #8b6f5a;
+            margin-top: 2px;
+        }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+<body>
 
-    <nav class="sticky top-0 z-50 bg-primary-500 py-3 px-6 shadow-md">
-        <div class="container mx-auto flex justify-between items-center text-black">
-            <div class="flex items-center space-x-2">
-                <i class="fas fa-bicycle text-2xl"></i>
-                <span class="font-black text-xl tracking-tight"> 骑点创客· 骑手驿站</span>
+    <!-- ==================== 导航栏 ==================== -->
+    <nav class="fixed top-0 w-full bg-white/94 backdrop-blur-md z-50 border-b border-[#ede4db] shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <img src="logo.png" alt="沪上住梦" class="logo-img"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-9 h-9 bg-gradient-to-br from-[#5b3a29] to-[#7d5540] rounded-xl items-center justify-center text-white shadow-md" style="display: none;">
+                    <i class="fas fa-home text-sm"></i>
+                </div>
+                <span class="text-lg md:text-xl font-black text-[#5b3a29] tracking-tight hidden sm:inline">沪上住梦<span class="text-[#c67b3d]">·</span>租就未来</span>
             </div>
-            <div class="hidden md:flex space-x-6 font-bold text-sm">
-                <a href="#panorama" class="hover:opacity-70">驿站全景</a>
-                <a href="#museum" class="hover:opacity-70">项目概览</a>
-                <a href="#map" class="hover:opacity-70">区域分布</a>
-                <a href="#facilities" class="hover:opacity-70">核心功能</a>
-                <a href="#process" class="hover:opacity-70">特色服务</a>
-                <a href="#contact" class="hover:opacity-70">加入我们</a>
+            <div class="hidden md:flex space-x-1 text-[11px] font-bold tracking-[0.15em] uppercase">
+                <a href="#home" class="nav-link active px-3 py-1.5 text-[#5b3a29] hover:text-[#c67b3d]">首页</a>
+                <a href="#listings" class="nav-link px-3 py-1.5 text-[#6b5a4e] hover:text-[#c67b3d]">房源浏览</a>
+                <a href="#evaluation" class="nav-link px-3 py-1.5 text-[#6b5a4e] hover:text-[#c67b3d]">评价体系</a>
+                <a href="#scoring" class="nav-link px-3 py-1.5 text-[#6b5a4e] hover:text-[#c67b3d]">智能评分</a>
+                <a href="#government" class="nav-link px-3 py-1.5 text-[#6b5a4e] hover:text-[#c67b3d]">政府联络</a>
+                <a href="#news" class="nav-link px-3 py-1.5 text-[#6b5a4e] hover:text-[#c67b3d]">街道新闻</a>
             </div>
-            <button id="themeToggle" class="bg-black/10 p-2 rounded-full w-10 h-10 flex items-center justify-center">
-                <i class="fas fa-moon"></i>
-            </button>
+            <button class="md:hidden text-[#5b3a29] text-xl" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+        </div>
+        <!-- 移动端菜单，点击链接自动关闭 -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-[#ede4db] px-4 py-3 space-y-2">
+            <a href="#home" class="block py-2 text-sm font-bold text-[#5b3a29]" onclick="toggleMobileMenu()">首页</a>
+            <a href="#listings" class="block py-2 text-sm font-bold text-[#6b5a4e]" onclick="toggleMobileMenu()">房源浏览</a>
+            <a href="#evaluation" class="block py-2 text-sm font-bold text-[#6b5a4e]" onclick="toggleMobileMenu()">评价体系</a>
+            <a href="#scoring" class="block py-2 text-sm font-bold text-[#6b5a4e]" onclick="toggleMobileMenu()">智能评分</a>
+            <a href="#government" class="block py-2 text-sm font-bold text-[#6b5a4e]" onclick="toggleMobileMenu()">政府联络</a>
+            <a href="#news" class="block py-2 text-sm font-bold text-[#6b5a4e]" onclick="toggleMobileMenu()">街道新闻</a>
         </div>
     </nav>
 
-    <header class="bg-primary-500 pt-16 pb-24 px-4 text-center">
-        <h1 class="text-4xl md:text-6xl font-black text-black mb-6 uppercase tracking-tighter">让每一程奔波，都有温暖停靠</h1>
-        <p class="text-lg md:text-xl text-black/80 max-w-2xl mx-auto font-medium"></p>
-    </header>
+    <!-- ==================== 主内容 ==================== -->
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-20 space-y-14">
 
-    <main class="container mx-auto px-4 -mt-12">
-        
-        <!-- 全景展示模块 (保留) -->
-        <section id="panorama" class="mb-16 section-animate">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl">
-                <div class="flex items-center mb-4 px-2">
-                    <span class="bg-primary-500 text-black px-3 py-1 rounded-full text-xs font-bold mr-3">720° VR</span>
-                    <h2 class="text-xl font-bold">驿站内部全景展示</h2>
+        <!-- 首页（未改） -->
+        <section id="home" class="scroll-mt-20">
+            <!-- ... 与之前完全相同 ... -->
+            <div class="warm-card overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch">
+                    <div class="p-8 md:p-12 lg:p-14 flex flex-col justify-center text-center md:text-left">
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-black text-[#3d2b1f] mb-4 leading-tight">
+                            沪上<span class="text-[#c67b3d]">"住"</span>梦<br><span class="text-[#5b3a29]">"租"</span>就未来
+                        </h1>
+                        <p class="text-sm md:text-base text-[#6b5a4e] mb-8 max-w-lg mx-auto md:mx-0">
+                            专注上海新市民租房选择因素分析<br class="hidden sm:block">
+                            构建<span class="font-bold text-[#5b3a29]">公开透明</span>的房源评价体系<br class="hidden sm:block">
+                            让每一位来沪追梦人<span class="font-bold text-[#c67b3d]">住有所居、居有所安</span>
+                        </p>
+                        <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                            <a href="#listings" class="btn-primary btn-sm"><i class="fas fa-search"></i> 浏览房源</a>
+                            <a href="#scoring" class="btn-outline btn-sm"><i class="fas fa-star"></i> 智能评分</a>
+                        </div>
+                    </div>
+                    <div class="relative min-h-[280px] md:min-h-[380px] bg-gradient-to-br from-[#fdf0e4] via-[#f8e8d6] to-[#f5e0cc] flex items-center justify-center overflow-hidden">
+                        <img src="logo.png" alt="沪上住梦" class="relative z-10 max-h-[180px] md:max-h-[220px] w-auto object-contain"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="text-7xl md:text-8xl relative z-10 items-center justify-center hidden">🏘️</div>
+                    </div>
                 </div>
-                <div class="pano-iframe-wrapper">
-                    <iframe src="https://www.720yun.com/vr/122jt7myOy2" allowfullscreen></iframe>
-                </div>
-                <p class="mt-4 text-sm text-gray-500 italic flex items-center">
-                    <i class="fas fa-info-circle mr-2"></i> 方案设计：动静分区布局。外侧为繁忙区（补给），内侧为静区（休息）。
-                </p>
             </div>
         </section>
 
-        <!-- ========= 新增交互模块1：驿站3+1 ========= -->
-        <section id="museum" class="mb-16 section-animate py-8 bg-stone-50 dark:bg-gray-800 rounded-3xl px-6">
-            <div class="max-w-6xl mx-auto">
-                <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
-                    <div class="max-w-xl">
-                        <h2 class="text-3xl font-black text-gray-900 dark:text-white mb-2">驿站"3+1"联动模式</h2>
+        <!-- 房源浏览 -->
+        <section id="listings" class="scroll-mt-20">
+            <div class="warm-card p-6 md:p-10">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-bold text-[#3d2b1f] flex items-center gap-2">
+                            <i class="fas fa-building text-[#c67b3d]"></i> 房源浏览
+                        </h2>
                     </div>
-                    <div class="flex bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-inner border border-stone-200 dark:border-stone-700 overflow-x-auto">
-                        <button onclick="switchEra('start')" id="era-start" class="era-btn museum-tab-active px-5 py-2 rounded-full text-xs font-bold transition-all">政府</button>
-                        <button onclick="switchEra('spread')" id="era-spread" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">外卖平台</button>
-                        <button onclick="switchEra('standard')" id="era-standard" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">高校</button>
-                        <button onclick="switchEra('smart')" id="era-smart" class="era-btn px-5 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">骑手</button>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openAddListingModal()" class="btn-primary btn-sm"><i class="fas fa-plus-circle"></i> 添加我的房源</button>
+                        <select id="districtFilter" onchange="filterListings()" class="text-xs font-bold px-3 py-2 rounded-xl border border-[#ede4db] bg-white text-[#5b3a29] cursor-pointer">
+                            <option value="all">📍 全部区域</option>
+                            <option value="主城区">🏙️ 主城区</option>
+                            <option value="新市区">🌇 新市区</option>
+                            <option value="黄浦区">黄浦区</option><option value="静安区">静安区</option><option value="徐汇区">徐汇区</option>
+                            <option value="浦东新区">浦东新区</option><option value="松江区">松江区</option><option value="嘉定区">嘉定区</option>
+                            <option value="青浦区">青浦区</option><option value="金山区">金山区</option><option value="崇明区">崇明区</option>
+                        </select>
+                        <select id="sortBy" onchange="filterListings()" class="text-xs font-bold px-3 py-2 rounded-xl border border-[#ede4db] bg-white text-[#5b3a29] cursor-pointer">
+                            <option value="score">⭐ 按综合评分</option>
+                            <option value="rent_asc">💰 租金从低到高</option>
+                            <option value="rent_desc">💰 租金从高到低</option>
+                        </select>
                     </div>
                 </div>
-                
-                <div id="museum-display" class="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl p-8 md:p-12 relative overflow-hidden history-card">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                        <div class="space-y-6">
-                            <div>
-                                <h3 id="era-title" class="text-3xl font-bold mt-3 mb-4 dark:text-white">政府</h3>
-                                <p id="era-desc" class="text-slate-600 dark:text-slate-300 leading-loose text-base">政府的场地支撑是整个驿站的底座。在调研中我们发现，虽然市场上有很多商业门面，但租金成本往往是共享经济项目最大的负担。而政府手里拥有大量贴近社区、位置极佳的公共场地，比如分布在杨浦区各个街镇的党群服务中心或社区便民点。通过与街道和民政部门对接，我们希望将这些闲置或利用率不高的存量资源盘活，改造成骑手们触手可及的落脚点。这种政府出场地、社会力量出运营的合作方式，不仅解决了驿站的租金问题，更让公益项目有了官方的背书。对政府来说，这是一种创新的基层治理尝试，把“新就业形态劳动者”的服务保障落到了实处，真正体现了人民城市为人民的理念。</p>
+                <div id="listingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            </div>
+        </section>
+
+        <!-- 评价体系 -->
+        <section id="evaluation" class="scroll-mt-20">
+            <div class="warm-card p-6 md:p-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-[#3d2b1f] mb-6 flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-[#c67b3d]"></i> 房源评价指标体系 · 调研透视
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="warm-card-sm p-4">
+                        <h3 class="font-bold text-[#5b3a29] text-sm mb-3">📊 指标权重分布（熵值法）</h3>
+                        <div style="height:300px;"><canvas id="weightBarChart"></canvas></div>
+                    </div>
+                    <div class="warm-card-sm p-4">
+                        <h3 class="font-bold text-[#5b3a29] text-sm mb-3">👥 调研样本构成</h3>
+                        <div style="height:300px;"><canvas id="samplePieChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="warm-card-sm p-3 text-center"><div class="text-lg font-black text-[#c67b3d]">633份</div><div class="text-[10px] text-[#8b6f5a]">有效问卷</div></div>
+                    <div class="warm-card-sm p-3 text-center"><div class="text-lg font-black text-[#5b3a29]">11项</div><div class="text-[10px] text-[#8b6f5a]">核心指标</div></div>
+                    <div class="warm-card-sm p-3 text-center"><div class="text-lg font-black text-[#5b3a29]">熵值法</div><div class="text-[10px] text-[#8b6f5a]">客观赋权</div></div>
+                    <div class="warm-card-sm p-3 text-center"><div class="text-lg font-black text-[#5b3a29]">85%</div><div class="text-[10px] text-[#8b6f5a]">样本为新市民</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 智能评分 -->
+        <section id="scoring" class="scroll-mt-20">
+            <div class="warm-card p-6 md:p-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-br from-[#c67b3d] to-[#e8a362] rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-bold text-[#3d2b1f]">🧮 房源智能评分</h2>
+                        <p class="text-xs text-[#8b6f5a]">录入房源信息，自动计算租金/通勤评分，亦可调整权重</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-3 space-y-4">
+                        <div class="grid grid-cols-2 gap-3 pb-4 border-b border-[#ede4db]">
+                            <div><label class="text-[10px] font-bold text-[#8b6f5a]">房源名称</label><input type="text" id="houseName" class="modal-input" placeholder="如：静安·南京西路精品公寓"></div>
+                            <div><label class="text-[10px] font-bold text-[#8b6f5a]">所属区域</label>
+                                <select id="houseDistrict" class="modal-input"><option value="">请选择</option><option>黄浦区</option><option>静安区</option><option>徐汇区</option><option>浦东新区</option><option>松江区</option><option>嘉定区</option><option>青浦区</option><option>金山区</option><option>崇明区</option></select>
                             </div>
+                            <div><label class="text-[10px] font-bold text-[#8b6f5a]">月租金 (元)</label><input type="number" id="rentInput" class="modal-input" placeholder="如 3500" oninput="autoMapRent()"></div>
+                            <div><label class="text-[10px] font-bold text-[#8b6f5a]">通勤时间 (分钟)</label><input type="number" id="commuteInput" class="modal-input" placeholder="如 25" oninput="autoMapCommute()"></div>
                         </div>
-                        <div class="relative">
-                            <div class="aspect-auto bg-stone-50 dark:bg-gray-700 rounded-3xl overflow-hidden flex items-center justify-center p-4 border border-stone-200 dark:border-stone-600 image-container">
-                                <img id="era-image" src="五角场街道党群服务中心.jpg" alt="驿站发展" class="w-full h-[300px] object-cover rounded-3xl">
+                        <!-- 权重开关区域，增加提示 -->
+                        <div class="flex items-center gap-4 mb-2">
+                            <label class="flex items-center gap-2 text-xs font-bold"><input type="checkbox" id="customWeightToggle" onchange="toggleCustomWeight()"> 自定义权重</label>
+                            <span id="weightSumDisplay" class="text-[10px] text-[#8b6f5a] hidden">当前权重总和：<span id="weightSumVal">100</span>%</span>
+                            <button onclick="resetWeights()" class="text-[10px] text-[#c67b3d] underline hidden" id="resetWeightBtn">重置为默认</button>
+                        </div>
+                        <div class="weight-hint" id="weightHint" style="display:none;">⚠️ 权重总和不足100%将自动按比例归一化</div>
+                        <div id="scoreInputs" class="space-y-2"></div>
+                        <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-[#ede4db]">
+                            <button onclick="calculateScore()" class="btn-primary"><i class="fas fa-calculator"></i> 计算综合评分</button>
+                            <button onclick="saveScoringToList()" class="btn-outline"><i class="fas fa-save"></i> 保存到房源列表</button>
+                            <button onclick="resetAllScores()" class="btn-outline"><i class="fas fa-undo"></i> 重置</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 space-y-6" id="scoringResultPanel">
+                        <div class="warm-card-sm p-6 text-center" id="scoringEmpty">
+                            <div class="text-5xl mb-3">🏠</div><p class="text-sm text-[#8b6f5a]">填写信息后点击计算</p>
+                        </div>
+                        <div class="hidden space-y-6" id="scoringResultContent">
+                            <div class="warm-card-sm p-6 text-center score-pop">
+                                <p class="text-xs font-bold text-[#8b6f5a] mb-2">综合评分</p>
+                                <div class="text-6xl font-black text-[#5b3a29] mb-2" id="totalScoreDisplay">--</div>
+                                <span id="gradeBadge" class="grade-badge">--</span><span id="starDisplay" class="text-xl ml-2"></span>
+                                <p class="text-xs text-[#8b6f5a] mt-1" id="gradeDesc"></p>
                             </div>
-                            <p class="text-center text-xs text-stone-500 dark:text-stone-400 mt-2 italic"></p>
+                            <div class="warm-card-sm p-4"><h3 class="font-bold text-sm mb-3"><i class="fas fa-chart-pie text-[#c67b3d]"></i> 雷达图</h3><div class="radar-container"><canvas id="radarChart"></canvas></div></div>
+                            <div class="warm-card-sm p-4"><h3 class="font-bold text-sm mb-3"><i class="fas fa-lightbulb text-[#e8a362]"></i> 智能分析</h3><div id="strengthWeakness" class="space-y-2 text-xs"></div></div>
+                            <div class="warm-card-sm p-4 bg-[#fef7f1]"><h3 class="font-bold text-sm mb-2"><i class="fas fa-comment-dots text-[#c67b3d]"></i> 租住建议</h3><p class="text-xs" id="adviceText"></p></div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ========= 新增交互模块2：全国骑手驿站分布地图 (呼吸点) ========= -->
-        <section id="map" class="mb-16 section-animate py-8 bg-stone-100 dark:bg-gray-900 rounded-3xl px-4">
-            <div class="max-w-7xl mx-auto">
-                <div class="mb-8 border-l-4 border-primary-500 pl-4">
-                    <h2 class="text-3xl font-bold">杨浦区骑手驿站分布（拟）</h2>
-                    <p class="text-stone-500 dark:text-stone-400 text-sm mt-1">点击地图上的呼吸点，查看各驿站简介</p>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <!-- 左侧：地图区域 -->
-                    <div class="lg:col-span-8">
-                        <div class="map-wrapper">
-                            <!-- 需要您放置一张中国地图轮廓图（建议SVG或PNG）到项目目录，命名为 china-map-simple.svg -->
-                         <!-- 直接引用本地SVG文件（推荐方式） -->
-<img 
-  src="杨浦.jpg" 
-  alt="驿站分布地图" 
-  class="base-map" 
-  id="mapImg"
-  width="800"  
-  height="600" 
->
-                            
-                            <!-- 交互点定位层 (呼吸点) -->
-                            <div class="overlay-layer">
-                                <!-- 示例省份热点 (位置仅为示意，需根据实际地图微调) -->
-                                <div class="map-hotspot" style="top: 19%; left: 36%;" onclick="loadProvince('淞沪路骑点驿站')"></div>
-                                <div class="map-hotspot" style="top: 67%; left: 56%;" onclick="loadProvince('长阳路骑点驿站')"></div>
-                                <div class="map-hotspot" style="top: 24%; left: 50%;" onclick="loadProvince('中原路骑点驿站')"></div>
-                                <div class="map-hotspot" style="top: 63%; left: 41%;" onclick="loadProvince('双辽路骑点驿站')"></div>
-                                <div class="map-hotspot" style="top: 45%; left: 38%;" onclick="loadProvince('国定路骑点驿站')"></div>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-2 italic">* 呼吸点位置为示意，实际部署需配合精确地图</p>
-                    </div>
-
-                    <!-- 右侧：详情面板 -->
-                    <div class="lg:col-span-4 flex flex-col gap-4">
-                        <div class="bg-primary-500 text-black p-6 rounded-3xl shadow-lg">
-                            <h3 id="pTitle" class="text-2xl font-bold mb-2">未选择驿站站点</h3>
-                            <p id="pDesc" class="text-black/70 text-sm leading-relaxed">请点击地图上的呼吸点，查看该驿站基本信息。</p>
-                        </div>
-                        
-                        <div id="pList" class="flex-1 overflow-y-auto custom-scroll space-y-3 pr-2 max-h-[400px]">
-                            <!-- 列表项由JS动态生成 -->
-                        </div>
-                    </div>
-                </div>
+        <!-- 政府联络 -->
+        <section id="government" class="scroll-mt-20">
+            <div class="warm-card p-6 md:p-10">
+                <h2 class="text-2xl font-bold text-[#3d2b1f] mb-6"><i class="fas fa-landmark text-[#c67b3d]"></i> 政府部门联络</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="govCards"></div>
             </div>
         </section>
 
-        <!-- 原有功能模块 (facilities) 保持不变 -->
-        <section id="facilities" class="mb-16 section-animate">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-black mb-2">项目优势</h2>
-                <div class="w-16 h-1 bg-primary-500 mx-auto"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- 四个卡片内容与原代码一致，略作精简但保留 -->
-                <div class="img-card group h-80 shadow-lg">
-                    <img src="科技赋能.php" alt="能量补给" class="w-full h-full object-cover transition duration-500">
-                    <div class="img-overlay"></div>
-                    <div class="absolute bottom-0 left-0 p-5 text-white">
-                        <span class="bg-primary-500 text-black text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block"></span>
-                        <h3 class="text-xl font-bold">科技赋能</h3>
-                        <p class="text-sm opacity-90 mt-1">驿站小程序、算法选址、3D打印模型</p>
-                    </div>
-                </div>
-                <div class="img-card group h-80 shadow-lg">
-                    <img src="政策引领.avif" alt="智能换电" class="w-full h-full object-cover transition duration-500">
-                    <div class="img-overlay"></div>
-                    <div class="absolute bottom-0 left-0 p-5 text-white">
-                        <span class="bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block"></span>
-                        <h3 class="text-xl font-bold">政策引领</h3>
-                        <p class="text-sm opacity-90 mt-1">践行人民城市理念、建设“骑手友好社区”</p>
-                    </div>
-                </div>
-                <div class="img-card group h-80 shadow-lg">
-                    <img src="共享单车.jpg" alt="深度休憩" class="w-full h-full object-cover transition duration-500">
-                    <div class="img-overlay"></div>
-                    <div class="absolute bottom-0 left-0 p-5 text-white">
-                        <span class="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block"></span>
-                        <h3 class="text-xl font-bold">顺应时代发展趋势</h3>
-                        <p class="text-sm opacity-90 mt-1">数字经济、共享经济理念</p>
-                    </div>
-                </div>
-                <div class="img-card group h-80 shadow-lg">
-                    <img src="一站式服务.jpg" alt="法律心理" class="w-full h-full object-cover transition duration-500">
-                    <div class="img-overlay"></div>
-                    <div class="absolute bottom-0 left-0 p-5 text-white">
-                        <span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded mb-2 inline-block"></span>
-                        <h3 class="text-xl font-bold">创新服务体验</h3>
-                        <p class="text-sm opacity-90 mt-1">“公益+微利”运营模式、“一站式”综合服务</p>
-                    </div>
-                </div>
+        <!-- 街道新闻 -->
+        <section id="news" class="scroll-mt-20">
+            <div class="warm-card p-6 md:p-10">
+                <h2 class="text-2xl font-bold text-[#3d2b1f] mb-6"><i class="fas fa-newspaper text-[#c67b3d]"></i> 街道新闻</h2>
+                <div class="space-y-4" id="newsList"></div>
             </div>
         </section>
-
-        <!-- ========= 新增交互模块3：驿站1+4 ========= -->
-        <section id="process" class="mb-16 section-animate py-8 bg-stone-50 dark:bg-gray-800 rounded-3xl px-6">
-            <div class="max-w-5xl mx-auto">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-black mb-2 dark:text-white">驿站“1+4”服务模块</h2>
-                    <p class="text-stone-400 text-sm tracking-widest uppercase"></p>
-                </div>
-
-                <div class="flex justify-center gap-6 border-b border-stone-200 dark:border-stone-700 mb-12 overflow-x-auto pb-4">
-                    <button onclick="showProcess(1)" id="proc-1" class="proc-btn museum-tab-active px-6 py-2 rounded-full text-xs font-bold transition-all">核心基础模块</button>
-                    <button onclick="showProcess(2)" id="proc-2" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">生产增效模块</button>
-                    <button onclick="showProcess(3)" id="proc-3" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">咨询服务模块</button>
-                    <button onclick="showProcess(4)" id="proc-4" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">人文关怀模块</button>
-                    <button onclick="showProcess(5)" id="proc-5" class="proc-btn px-6 py-2 rounded-full text-xs font-bold text-stone-400 transition-all">数字服务模块</button>
-                </div>
-                </div>
-
-                <div id="process-content" class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-[400px]">
-                    <div class="space-y-6">
-                        <h3 id="step-title" class="text-3xl font-bold dark:text-white">核心基础模块</h3>
-                        <p id="step-desc" class="text-slate-500 dark:text-slate-400 leading-loose italic">在我们的设计中，物理空间的舒适度是第一位的。驿站提供24小时开放的休息室，内部配备了可供骑手使用的微波炉、大容量冰箱、自动饮水机和WIFI。对于在马路边赶时间的骑手来说，能有一个可以热饭、充电等功能的地方，就是最大的方便。此外，我们特别设立了能量补给站，这里有免费的冷热饮用水，并安置了自动售货机，以平价销售功能性饮料和补充体能的零食。考虑到骑手工作的特殊性，我们还配备了包含藿香正气水、碘伏、创可贴等在内的应急箱。智能寄存区则解决了骑手随身物资的安放难题，这能有效避免雨天物资潮湿和丢失的困扰。这套基础服务逻辑，旨在消除骑手在城市穿行中的焦虑感，让他们推开门就能感受到安稳。</p>
-                        <div id="step-details" class="space-y-4 pt-4">
-                        </div>
-                    </div>
-                    <div class="bg-paper-texture aspect-auto rounded-[3rem] border-8 border-white dark:border-gray-600 shadow-2xl flex items-center justify-center relative overflow-hidden image-container">
-                        <img id="step-image" src="驿站效果图.jpg" alt="休憩区" class="w-full h-full object-cover process-img">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 管理模块 (原有) -->
-        <section id="management" class="mb-16 section-animate">
-            <div class="bg-primary-500 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
-                <div class="md:w-1/1 text-black">
-                    <h2 class="text-3xl font-black mb-6">“公益+微利”运营模式</h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center">
-                            <div class="bg-black text-white rounded-full w-8 h-8 flex items-center justify-center mt-1 mr-3 flex-shrink-0 font-bold text-xs">公益</div>
-                            <p class="font-medium">利用驿站的公益属性，本项目可以积极争取来自基层政府端（如各街道的党群服务中心）中的闲置资源支持，尽可能为更多的骑手提供服务。</p>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="bg-black text-white rounded-full w-8 h-8 flex items-center justify-center mt-1 mr-3 flex-shrink-0 font-bold text-xs">微利</div>
-                            <p class="font-medium">保障驿站的常态化可持续公益服务，通过少量的、合理的商业收益，建立起一套稳健的资金闭环。</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 新闻动态、成长课堂、爱心商家、荣誉、联系等模块保留 (为避免过长，此处仅保留关键联系模块) -->
-        <section id="news" class="mb-16 section-animate">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-black mb-2">驿站内部空间设计</h2>
-                <div class="w-16 h-1 bg-primary-500 mx-auto"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
-                    <img src="驿站色调.png" class="w-full h-48 object-cover object-left">
-                    <div class="p-6">
-                        <span class="text-xs font-bold text-primary-600 mb-2 block"></span>
-                        <h3 class="text-xl font-bold mb-2">动静分离的功能布局</h3>
-                        <p class="text-gray-500 text-sm">驿站采用“动静分离”布局。动区设于入口，配置维修角、工具指南及智能储物柜，地面防滑耐磨。静区位于内侧，以隔断划分，设沙发座椅、心愿墙及餐饮区，提供微波炉与直饮水。咨询室采用隔音设计，照明选用暖色调光源。</p>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
-                    <img src="驿站色调.png" class="w-full h-48 object-cover object-right">
-                    <div class="p-6">
-                        <span class="text-xs font-bold text-primary-600 mb-2 block"></span>
-                        <h3 class="text-xl font-bold mb-2">温馨明亮的装修风格</h3>
-                        <p class="text-gray-500 text-sm">内部采用亮色调与自然材质，主色调选用橙黄与果绿，家具搭配布艺软包，空间内点缀绿植，标识系统图文统一、指示清晰。</p>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700">
-                    <img src="wifi.jpeg" class="w-full h-48 object-contain">
-                    <div class="p-6">
-                        <span class="text-xs font-bold text-primary-600 mb-2 block"></span>
-                        <h3 class="text-xl font-bold mb-2">智能便捷的设备配置</h3>
-                        <p class="text-gray-500 text-sm">驿站内部配置兼顾基础与增值服务。空调、冰箱与微波炉满足餐食储热需求。全空间免费Wi-Fi保障接单与休息。智能门锁支持人脸识别或刷卡便捷进入。急救箱配置常用药保障突发需求。休息区广布USB及五孔插座，满足充电需求。</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 荣誉模块 (原) -->
-        <section id="honor" class="mb-16 section-animate">
-            <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border-l-8 border-primary-500 flex flex-col md:flex-row items-center gap-10">
-                <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500 flex-shrink-0">
-                    <img src="logo.png" class="w-full h-full object-cover">
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold mb-1">品牌logo设计理念</h3>
-                    <p class="text-gray-500 text-sm italic mb-4"><br>品牌logo以驿站的房屋轮廓为背景，融合骑手骑行的动态剪影与能量补给元素，将“驿站庇护”的寓意与服务场景融为一体，直观传递品牌服务属性。<br><br>暖棕色调的简笔线条设计简约明了，既契合驿站的温暖定位，又凸显高效便捷的服务特质，实现了人文关怀与实用价值的有机融合。</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- 联系模块 -->
-<section id="contact" class="mb-20 section-animate">
-    <div class="bg-primary-500 rounded-3xl p-8 md:p-12 text-center text-black shadow-2xl relative overflow-hidden">
-        <i class="fas fa-heart absolute -bottom-10 -right-10 text-9xl text-black/5 rotate-12"></i>
-        <h2 class="text-3xl md:text-4xl font-black mb-4">联系我们 · 成为志愿者</h2>
-        <p class="max-w-xl mx-auto mb-8 font-medium">无论是提供场地、捐赠物资，还是申请成为驿站站长，您的每一份力量都让这座城市更有温度。</p>
-        
-        <!-- 三个联系方式放在同一行：电话、邮箱、二维码 -->
-        <div class="flex flex-col md:flex-row justify-center gap-6">
-            <!-- 电话卡片 -->
-            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
-                <div class="bg-black text-white p-3 rounded-full"><i class="fas fa-phone"></i></div>
-                <div class="text-left">
-                    <div class="text-xs font-bold opacity-60 uppercase">服务热线</div>
-                    <div class="font-black">400-123-4567</div>
-                </div>
-            </div>
-            <!-- 邮箱卡片 -->
-            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
-                <div class="bg-black text-white p-3 rounded-full"><i class="fas fa-envelope"></i></div>
-                <div class="text-left">
-                    <div class="text-xs font-bold opacity-60 uppercase">官方邮箱</div>
-                    <div class="font-black">station@meituan.com</div>
-                </div>
-            </div>
-            <!-- 二维码卡片（新） -->
-            <div class="bg-white/40 backdrop-blur-md p-6 rounded-2xl flex items-center space-x-4">
-                <div class="bg-white p-1 rounded-lg flex-shrink-0">
-                    <!-- 请将 src 替换为您的实际二维码图片路径 -->
-                    <img src="小程序.png" alt="志愿者二维码" class="w-12 h-12 object-cover">
-                </div>
-                <div class="text-left">
-                    <div class="text-xs font-bold opacity-60 uppercase">扫码加入</div>
-                    <div class="font-black text-sm">志愿者群</div>
-                </div>
-            </div>
-        </div>
-
-        <button class="mt-10 bg-black text-white px-10 py-4 rounded-full font-black text-lg hover:scale-105 transition-transform shadow-lg">
-            提交志愿申请表
-        </button>
-    </div>
-</section>
-
     </main>
 
-    <footer class="bg-gray-950 text-white py-12 border-t-4 border-primary-500">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="text-center md:text-left">
-                <div class="flex items-center justify-center md:justify-start space-x-2 mb-2">
-                    <i class="fas fa-store text-primary-500"></i>
-                    <span class="font-bold">RPS创新小组·骑点驿站项目</span>
-                </div>
-                <p class="text-gray-500 text-xs uppercase tracking-widest">© 2026 骑点驿站 · 城市温情计划</p>
-            </div>
-            <div class="flex space-x-6 text-2xl text-gray-500">
-                <i class="fab fa-weixin hover:text-primary-500 cursor-pointer transition-colors"></i>
-                <i class="fab fa-weibo hover:text-primary-500 cursor-pointer transition-colors"></i>
-                <i class="fas fa-phone-alt hover:text-primary-500 cursor-pointer transition-colors"></i>
-            </div>
-        </div>
+    <footer class="bg-[#3d2b1f] text-[#d5c8b8] py-10 mt-8 text-center text-xs">
+        © 2025 沪上住梦 · 上海新市民租房信息平台
     </footer>
 
-    <!-- 交互脚本 (整合原参考逻辑并适配驿站数据) -->
+    <!-- 模态框 -->
+    <div id="addListingModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="font-bold text-lg mb-4">添加我的房源</h3>
+            <input type="text" id="modalName" placeholder="房源名称" class="modal-input">
+            <select id="modalDistrict" class="modal-input"><option value="">区域</option><option>黄浦区</option><option>静安区</option><option>徐汇区</option><option>浦东新区</option><option>松江区</option><option>嘉定区</option><option>青浦区</option><option>金山区</option><option>崇明区</option></select>
+            <input type="number" id="modalRent" placeholder="月租金 (元)" class="modal-input">
+            <input type="number" id="modalArea" placeholder="面积 (㎡)" class="modal-input">
+            <input type="text" id="modalRooms" placeholder="户型 (如2室1厅)" class="modal-input">
+            <input type="text" id="modalDesc" placeholder="简短描述" class="modal-input">
+            <div class="flex gap-3 mt-4">
+                <button onclick="saveAndGoScore()" class="btn-primary flex-1">保存并评分</button>
+                <button onclick="saveListingOnly()" class="btn-outline flex-1">仅保存</button>
+            </div>
+            <button onclick="closeModal()" class="text-xs text-[#8b6f5a] mt-2 block w-full text-center">取消</button>
+        </div>
+    </div>
+
     <script>
-        // 暗黑模式切换
-        const themeToggle = document.getElementById('themeToggle');
-        themeToggle.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            const icon = themeToggle.querySelector('i');
-            icon.classList.toggle('fa-moon');
-            icon.classList.toggle('fa-sun');
-        });
+        // ========== 数据（与之前一致）==========
+        const listingsData = [
+            { id:1, district:'黄浦区', area:'主城区', title:'黄浦·豫园精致一居', rent:5200, rooms:'1室1厅', areaSize:42, score:87, tags:['交通便利','生活配套丰富'], desc:'黄浦核心，毗邻豫园商圈。', imageEmoji:'🏙️', level:'high', imageFile:'listing_01.jpg' },
+            { id:2, district:'静安区', area:'主城区', title:'静安·南京西路精品公寓', rent:6800, rooms:'2室1厅', areaSize:58, score:91, tags:['核心地段','品质装修'], desc:'静安寺商圈旁，精装修。', imageEmoji:'🏢', level:'high', imageFile:'listing_02.jpg' },
+            { id:3, district:'徐汇区', area:'主城区', title:'徐汇·衡山路文艺两居', rent:7500, rooms:'2室1厅', areaSize:62, score:89, tags:['文艺氛围','绿化好'], desc:'衡山路历史风貌区。', imageEmoji:'🌳', level:'high', imageFile:'listing_03.jpg' },
+            { id:4, district:'浦东新区', area:'主城区', title:'浦东·陆家嘴景观套房', rent:8500, rooms:'2室2厅', areaSize:75, score:93, tags:['江景房','高端配套'], desc:'陆家嘴金融区高层江景。', imageEmoji:'🌆', level:'high', imageFile:'listing_04.jpg' },
+            { id:5, district:'松江区', area:'新市区', title:'松江·大学城阳光两居', rent:2800, rooms:'2室1厅', areaSize:65, score:72, tags:['租金实惠','面积宽敞'], desc:'大学城附近，性价比高。', imageEmoji:'🏠', level:'mid', imageFile:'listing_05.jpg' },
+            { id:6, district:'嘉定区', area:'新市区', title:'嘉定·新城现代公寓', rent:3200, rooms:'2室1厅', areaSize:68, score:75, tags:['性价比高','新城规划'], desc:'嘉定新城核心区。', imageEmoji:'🏡', level:'mid', imageFile:'listing_06.jpg' },
+            { id:7, district:'青浦区', area:'新市区', title:'青浦·淀山湖畔闲居', rent:2200, rooms:'2室1厅', areaSize:70, score:68, tags:['自然生态','租金低廉'], desc:'靠近淀山湖生态区。', imageEmoji:'🌿', level:'low', imageFile:'listing_07.jpg' },
+            { id:8, district:'金山区', area:'新市区', title:'金山·滨海温馨两居', rent:2000, rooms:'2室1厅', areaSize:72, score:65, tags:['最低租金','滨海环境'], desc:'金山区滨海地带。', imageEmoji:'🌊', level:'low', imageFile:'listing_08.jpg' },
+            { id:9, district:'崇明区', area:'新市区', title:'崇明·生态岛田园居', rent:1800, rooms:'2室1厅', areaSize:78, score:60, tags:['生态环境','超低租金'], desc:'崇明生态岛田园生活。', imageEmoji:'🍃', level:'low', imageFile:'listing_09.jpg' },
+            { id:10, district:'浦东新区', area:'主城区', title:'浦东·张江科技公寓', rent:4500, rooms:'1室1厅', areaSize:45, score:84, tags:['科技园区','智能配套'], desc:'张江高科技园区智能公寓。', imageEmoji:'💻', level:'high', imageFile:'listing_10.jpg' },
+        ];
 
-        // 滚动动画观察器
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('section-visible');
-                }
-            });
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.section-animate').forEach(section => {
-            observer.observe(section);
-        });
+        const weightData = [
+            { name:'租金水平', weight:20.0, color:'#c67b3d' },{ name:'通勤条件', weight:15.2, color:'#5b3a29' },
+            { name:'交通便利度', weight:13.8, color:'#7d5540' },{ name:'生活设施配套', weight:10.5, color:'#8b6f5a' },
+            { name:'环境整洁度', weight:9.2, color:'#9a8070' },{ name:'商业设施', weight:7.8, color:'#a89080' },
+            { name:'房屋设备新旧', weight:6.5, color:'#b8a090' },{ name:'网络条件', weight:5.3, color:'#c0a898' },
+            { name:'合同权益保障', weight:4.8, color:'#b89585' },{ name:'噪音干扰程度', weight:3.9, color:'#c8b0a0' },
+            { name:'教育条件', weight:3.0, color:'#d5c0b0' },
+        ];
 
-        // ----- 驿站发展历程 (博物馆) 数据 -----
-        const eras = {
-            start: {
-                title: "政府",
-                desc: "政府的场地支撑是整个驿站的底座。在调研中我们发现，虽然市场上有很多商业门面，但租金成本往往是共享经济项目最大的负担。而政府手里拥有大量贴近社区、位置极佳的公共场地，比如分布在杨浦区各个街镇的党群服务中心或社区便民点。通过与街道和民政部门对接，我们希望将这些闲置或利用率不高的存量资源盘活，改造成骑手们触手可及的落脚点。这种政府出场地、社会力量出运营的合作方式，不仅解决了驿站的租金问题，更让公益项目有了官方的背书。对政府来说，这是一种创新的基层治理尝试，把“新就业形态劳动者”的服务保障落到了实处，真正体现了人民城市为人民的理念。",
-                image: "五角场街道党群服务中心.jpg"
-            },
-            spread: {
-                title: "外卖平台",
-                desc: "外卖平台的人员管理是驿站运行的闸门。驿站是针对骑手设立的，那么如何快速、准确地核实进入者的身份，就成了管理上的重点。我们希望通过与头部外卖平台合作，利用平台现成的数字化管理系统，为驿站提供身份校验支持。骑手在进入驿站或扫码享受微利补给时，后台能自动确认其是否为真实在岗的从业人员。这种管理联动不仅保证了公益资源不被冒用或滥用，也让平台能够通过驿站这个物理节点，将关怀精准地推送到每一位骑手的手机端。通过平台的引流，驿站也不再需要大量地去做广告。",
-                image: "外卖平台.jpg"
-            },
+        const govData = [
+            { dept:'上海市住房保障和房屋管理局', phone:'021-12345', addr:'黄浦区人民大道200号', icon:'🏛️' },
+            { dept:'黄浦区住房保障中心', phone:'021-6326XXXX', addr:'黄浦区南京东路233号', icon:'🏙️' },
+            { dept:'静安区房屋管理局', phone:'021-6271XXXX', addr:'静安区常德路370号', icon:'🏢' },
+            { dept:'浦东新区住房保障办', phone:'021-5878XXXX', addr:'浦东新区世纪大道2001号', icon:'🌆' },
+            { dept:'松江区房管事务中心', phone:'021-5771XXXX', addr:'松江区中山中路38号', icon:'🏠' },
+            { dept:'12345市民服务热线', phone:'12345', addr:'全市统一热线', icon:'📞' },
+        ];
 
-            standard: {
-                title: "高校",
-                desc: "高校的志愿服务是提升驿站专业品质的软实力。如果驿站仅仅是一个遮风避雨的地方，那它的价值还不够。杨浦区拥有复旦、同济等多所知名高校，这里有最专业的法律和心理学科资源。我们定期组织高校的志愿者社团，如法学院的法律援助中心或教育学院的心理咨询室，走进驿站开展常态化服务。骑手在跑单路上遇到交通事故理赔、劳动合同纠纷等难题时，不需要花大价钱去找律师，在驿站就能获得初步的专业建议。同时，面对高强度的配送压力，大学生志愿者通过聊天、互动等方式，为骑手提供心理上的缓冲。对大学生来说，这也是一个接触社会、实践专业知识的窗口，实现了校园公益与社会需求的双向赋能。",
-                image: "高校志愿者.jpg"
-            },
-            smart: {
-                title: "骑手",
-                desc: "在这里，骑手不仅仅是被动接受帮助的人，他们是这个联动体系中活生生的参与者。我们设立了“骑手意见反馈周”，让他们告诉我们他们最实际、最真切的诉求。通过这种深度的互动，骑手的真实需求反向驱动着政府场地的升级、平台规则的优化以及高校志愿服务内容的调整。这种“3+1”的联动，让政府的公共资源不再静止，让平台的管理更有温度，让高校的研究更有地气，而最终受益的骑手，则在这一套闭环中获得了真切的归属感。通过这种多方协作，骑点驿站不仅是一个歇脚点，更成了一个多方共建、共享、共治的城市单元，让社会关怀在每一个路口都能看得到、摸得着。",
-                image: "骑手.jpeg"
-            }
-        };
+        const newsData = [
+            { title:'《上海市住房租赁条例》修订：租金年涨幅设限', date:'2025-03-15', category:'政策', tagClass:'tag-red' },
+            { title:'上海保障性租赁住房已筹集超650万套', date:'2025-02-28', category:'建设', tagClass:'tag-green' },
+            { title:'松江区新增三条地铁接驳公交线路', date:'2025-03-10', category:'交通', tagClass:'tag-blue' },
+            { title:'浦东新区推出青年人才租房补贴新政', date:'2025-03-05', category:'福利', tagClass:'tag-green' },
+            { title:'租房押金托管制度全面实施', date:'2025-01-20', category:'权益', tagClass:'tag-red' },
+            { title:'嘉定新城规划新增租赁型住宅用地', date:'2025-02-15', category:'规划', tagClass:'tag-blue' },
+        ];
 
-        function switchEra(eraKey) {
-            document.querySelectorAll('.era-btn').forEach(btn => {
-                btn.classList.remove('museum-tab-active');
-                btn.classList.add('text-stone-400');
-            });
-            document.getElementById(`era-${eraKey}`).classList.add('museum-tab-active');
-            const data = eras[eraKey];
-            const display = document.getElementById('museum-display');
-            display.style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('era-title').innerText = data.title;
-                document.getElementById('era-desc').innerText = data.desc;
-                document.getElementById('era-image').src = data.image;
-                display.style.opacity = '1';
-            }, 300);
-        }
+        const scoreIndicators = [
+            { id:'rent', name:'租金水平', icon:'💰', weight:20.0 },
+            { id:'commute', name:'通勤条件', icon:'🚇', weight:15.2 },
+            { id:'traffic', name:'交通便利度', icon:'🚌', weight:13.8 },
+            { id:'facility', name:'生活设施配套', icon:'🏪', weight:10.5 },
+            { id:'cleanliness', name:'环境整洁度', icon:'🧹', weight:9.2 },
+            { id:'commerce', name:'商业设施', icon:'🛒', weight:7.8 },
+            { id:'equipment', name:'房屋设备新旧', icon:'🔧', weight:6.5 },
+            { id:'network', name:'网络条件', icon:'📶', weight:5.3 },
+            { id:'contract', name:'合同权益保障', icon:'📝', weight:4.8 },
+            { id:'noise', name:'噪音干扰程度', icon:'🔇', weight:3.9 },
+            { id:'education', name:'教育条件', icon:'🎓', weight:3.0 },
+        ];
 
-        // ----- 全国分布地图 (省份数据) -----
-        const provinceData = {
-            "淞沪路骑点驿站": { desc: "新江湾城位于杨浦区西北部，是上海中心城区唯一的国家级湿地生态片区，由于其定位为国际化高品质社区，其商业布局呈现出低密度、高绿化的空间特征。该区域以悠方购物中心等生态化商业体为核心，服务于周边高净值住宅群及耐克、字节跳动等知名企业的办公人群，常住及办公人口约有6万至8万。与五角场商圈的稠密感不同，新江湾城的配送环境路网宽阔，建筑间距较大，导致骑手在配送过程中的体能消耗与单程距离普遍高于老旧城区。\n\n在针对该商圈的选址逻辑中，我们发现订单分布相对分散，选址点更倾向于部署在淞沪路主轴线的关键交通咽喉处。由于该片区遮蔽物较少，夏季暴晒与冬季风大的问题尤为突出，骑手对驿站的需求不仅限于饮水，更迫切地集中在长距离配送后的电瓶换电服务、车辆简易维修以及大空间休息补给，旨在为跨越长距离的骑手提供一个生态友好的中转据点。"},
-            "国定路骑点驿站": { desc: "作为上海市级四大城市副中心之一，五角场商圈是杨浦区的商业核心与交通枢纽，其独特的“一环五路”放射状布局汇聚了合生汇、万达广场、百联又一城等大型商业综合体。该区域不仅承载着约11.4万常住人口，更依托周边复旦、财大等知名高校及创智天地办公区，吸引了日均30万至50万人次的高强度流动人口。在如此稠密的商业生态下，五角场成为了外卖订单的爆发地，活跃在该区域的快递及外卖骑手规模达到800至1000人。\n\n然而，复杂的环岛交通、多层交织的空间动线以及严苛的主干道禁停限制，使骑手在取餐与配送间隙面临极大的停留压力。为了精准缓解这一痛点，选址方案在理论最优点的基础上刻意避开了交通拥堵且禁停的环岛中心，转而聚焦于国定路这一骑手配送的必经出口，旨在为辛勤穿梭的骑手群体提供一个既符合配送逻辑、又能满足饮水充电等刚需的“补给绿洲”。"},
-            "中原路骑点驿站": { desc: "殷行商圈位于杨浦区东北部，是一个典型的大型成熟居住区，拥有极高的居住密度和浓厚的人文生活气息。该区域以中原城市广场、各类社区邻里中心及密集的沿街餐饮店为核心，主要服务于周边中原路、殷行路沿线的数万户家庭。由于属于老牌居住片区，常住人口约有 18.5万，人口老龄化程度较高，这也使得该区域的餐饮外卖与生鲜代购单量长期保持高位。不同于中心商圈的白领外卖，这里的订单具有显著的“高频次、生活化”特征，骑手配送动线多穿梭于老旧社区的毛细血管中，面临着老旧小区停车难、门牌查找复杂等挑战。\n\n在针对该商圈的选址模型中，理论最优落位点集中在商圈核心交叉口附近。考虑到殷行地区老旧小区多、骑手等待家属下楼取餐时间较长等实际情况，驿站选址不仅要考虑距离商家的路程，还需注重与社区公共服务的结合，因此我们将驿站位置定在社区内，旨在通过这种“深入社区”的站点布局，给奔波在城市里的外卖骑手一个温暖如家的港湾。"},
-            "双辽路骑点驿站": { desc: "控江路商圈位于杨浦区西南部，紧邻新华医院，是杨浦区最早形成的综合性生活圈之一。该区域以紫荆广场、旭辉MALL及周边控江路美食街为核心，日均流动人口受医疗资源与老牌教育资源的叠加影响，稳定在15万至20万人次。此处的骑手除了承担常规的外卖配送，还承接了大量的医院跑腿单与老牌菜场的民生单，导致配送动线极度零散。由于该片区街道狭窄、人流如织，骑手普遍反映在周边很难找到合法的短暂停靠点，等候取单的过程极度疲劳且缺乏安全感。\n\n通过测算，选址中心点自然指向了控江路与江浦路这一交通枢纽。在实际落地时，我们建议将驿站设在商圈边缘的双辽路或与现有的党群服务点共建。该区域驿站的功能核心应聚焦于“避峰与待命”，即为等待医院单或错峰取餐的骑手提供合规路边停车位，从而在寸土寸金的老城区中，为骑手抠出一个能停下车、歇下脚的温暖角落。"},
-            "长阳路骑点驿站": { desc: "长阳路商圈地处杨浦区南部，是典型的“工业遗存与科创产业”融合区域，以长阳创谷、百联滨江购物中心以及周边的TMT产业园为重要坐标。随着杨浦滨江开发与互联网企业的入驻，该区域的常住及办公白领人口约10万至15万，形成了极具特征的“午间单量海啸”。这里的配送节奏极其紧凑，骑手在中午高峰时段往往处于高强度、满负荷的折返状态，且由于滨江带空旷的地理环境，夏季高温酷暑与冬季寒风侵袭是骑手面临的主要环境压力。\n\n针对长阳路商圈的分析发现，骑手动线高度集中在长阳路与宁国路这一十字轴线上。依据Manhattan距离最优解，选址应优先考虑长阳创谷入口或百联滨江侧门等关键节点。该区域的驿站应定位于“高效补给站”，核心功能除了满足白领午餐单结束后的集体休整外，还需重点解决大功率手机快充、电动车换电以及夏季防暑降温物资的供应。通过在这一科创高地建立爱心驿站，不仅能显著提升区域配送效率，更能体现杨浦滨江从“工业锈带”向“生活秀带”转变中对城市建设者的人文关怀。"},
-        };
+        let currentScores = {};
+        let currentWeights = {};
+        scoreIndicators.forEach(ind => { currentScores[ind.id] = 5; currentWeights[ind.id] = ind.weight; });
+        let radarChartInstance = null;
+        let weightCustom = false;
 
-        function loadProvince(name) {
-            const data = provinceData[name];
-            if (!data) {
-                document.getElementById('pTitle').innerText = name;
-                document.getElementById('pDesc').innerText = "该省份驿站数据正在收集中，敬请期待。";
-                document.getElementById('pList').innerHTML = "";
-                return;
-            }
-            document.getElementById('pTitle').innerText = name;
-            document.getElementById('pDesc').innerText = data.desc;
-            const listHtml = data.items.map(item => `
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 hover:border-primary-500 transition-colors shadow-sm">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[10px] px-2 py-0.5 bg-stone-100 dark:bg-stone-700 text-stone-500 rounded font-bold">${item.date}年</span>
-                        <span class="text-[10px] px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-200 rounded font-bold">${item.type}</span>
+        // ========== 渲染函数 ==========
+        function renderListings(data) {
+            const grid = document.getElementById('listingsGrid');
+            if (!grid) return;
+            const subset = data || listingsData;
+            grid.innerHTML = subset.map((item, i) => `
+                <div class="warm-card-sm overflow-hidden animate-in" style="animation-delay:${i*0.05}s">
+                    <img src="${item.imageFile || ''}" alt="${item.title}" class="listing-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="img-fallback" style="display:${item.imageFile?'none':'flex'}; min-height:200px; font-size:3rem; align-items:center; justify-content:center; background:#f5e6d8;">${item.imageEmoji||'🏠'}</div>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-[#5b3a29]">${item.district}</span>
+                            <span class="flex items-center gap-1"><span class="level-dot ${item.level||'low'}"></span><span class="text-[10px] font-bold">${item.score||0}分</span></span>
+                        </div>
+                        <h3 class="font-bold text-[#3d2b1f] mb-1 text-sm">${item.title}</h3>
+                        <p class="text-[10px] text-[#8b6f5a] mb-2 line-clamp-2">${item.desc||''}</p>
+                        <div class="flex flex-wrap gap-1 mb-3">${(item.tags||[]).map(t => `<span class="tag-primary text-[10px]">${t}</span>`).join('')}</div>
+                        <div class="flex items-center justify-between border-t border-[#ede4db] pt-2">
+                            <span class="text-lg font-black text-[#c67b3d]">¥${item.rent}<span class="text-[10px] font-normal text-[#8b6f5a]">/月</span></span>
+                            <span class="text-[10px] text-[#8b6f5a]">${item.rooms||''} · ${item.areaSize||''}㎡</span>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-stone-900 dark:text-white mt-2">${item.name}</h4>
                 </div>
             `).join('');
-            document.getElementById('pList').innerHTML = listHtml;
         }
 
-        // ----- 服务流程 (技艺厅) 数据 -----
-        const processData = {
-            1: { title: "核心基础模块", desc: "在我们的设计中，物理空间的舒适度是第一位的。驿站提供24小时开放的休息室，内部配备了可供骑手使用的微波炉、大容量冰箱、自动饮水机和WIFI。对于在马路边赶时间的骑手来说，能有一个可以热饭、充电等功能的地方，就是最大的方便。此外，我们特别设立了能量补给站，这里有免费的冷热饮用水，并安置了自动售货机，以平价销售功能性饮料和补充体能的零食。考虑到骑手工作的特殊性，我们还配备了包含藿香正气水、碘伏、创可贴等在内的应急箱。智能寄存区则解决了骑手随身物资的安放难题，这能有效避免雨天物资潮湿和丢失的困扰。这套基础服务逻辑，旨在消除骑手在城市穿行中的焦虑感，让他们推开门就能感受到安稳。",image: "驿站效果图.jpg"},
-            2: { title: "生产增效模块", desc: "旨在用商业联动的方式帮骑手“省时间、提效率”。骑手的配送量直接挂钩收入，而补能和修车是占用时间的两大痛点。我们在驿站门口设立充电插口，骑手购买月卡并成为会员后，可以付费进行充电。驿站外部设有“小型修车角”，配有常用的扳手、螺丝刀组合工具组。同时，我们通过联系周边专业的维修师傅达成合作，在驿站显眼位置公示师傅的联系方式进行推广。骑手通过驿站预约维修可享受折扣，而驿站则利用这样的推广，向修车师傅收取一部分广告佣金。这种“以商促工”的逻辑，不仅切实帮骑手解决了车辆小故障导致的停工问题，也为驿站的微利经营开辟了新渠道。",image: "修车.png" },
-            3: { title: "咨询服务模块", desc: "为骑手群体提供了心理与法律的“避风港”。外卖骑手是一个高压力的职业，长期的跑单压力和偶尔的交通纠纷是他们最头疼的事情。我们开通线上心理疏导热线，帮他们缓解长期紧绷的情绪。在法律援助方面，我们在驿站内公示了维权二维码，一键连接公益律师平台，并定期邀请杨浦区周边高校的心理学专业志愿者和法律宣传志愿者开展线下小讲座。面对复杂的交通事故赔偿咨询，还是劳动合同纠纷、劳务薪资争议，骑手都能在这里获得初步的法律建议和流程指引。这种服务不再只是口头上的关怀，而是通过专业力量的介入，让骑手在面对困境时不再感到孤立无援，实现公益服务的精准化转型。",image: "法律咨询.png" },
-            4: { title: "人文关怀模块", desc: "这是驿站提升骑手归属感、促进社区融入的关键。我们坚持开展“季节性暖心行动”。夏季高温天，驿站会主动提供冰镇绿豆汤和防暑药品；冬季，我们则准备好姜茶和暖贴。逢年过节，如端午、中秋，驿站会组织简单的慰问品发放，让在外奔波的骑手也能感受到节日的气氛。同时，我们在驿站内墙设立了骑手心愿墙，关注骑手的需求，更紧密地联系骑手的心愿，通过这种精神层面的关怀，提升骑手的归属感与自豪感。这种双向互动，有效拉近了骑手与驿站的距离。",image: "人文关怀.jpg" },
-            5: { title: "数字服务模块", desc: "通过科技手段将上述所有服务进行高效串联。我们开发的“骑点助手”小程序是驿站的数字化灵魂。骑手通过小程序可以实现“一键找站”，实时查看周边驿站的位置、距离以及当前座位的空位情况。驿站还推出了餐饮预约功能，通过整合驿站周边一公里的餐厅资源来解决骑手吃饭贵和排队难的问题。骑手可以在小程序内提前预约一日三餐并选择取餐时间，这为骑手提高了跑单效率。对于周边的合作餐厅而言，驿站是一个稳定的骑手流量入口，我们可以利用这些精准的客群资源为餐厅带来大量固定订单，帮助餐厅提高非高峰时段的翻台率。因为这种合作是驿站与餐厅的直接对接，省去了外卖平台高昂的佣金成本，餐厅因此愿意把这部分省下的钱转化为折扣，给通过驿站预约的骑手提供一个低于市价的专属内部价格。骑手在享受低价餐食的同时，每一笔成交订单都会产生一笔低比例的佣金回流到驿站。这种抽成比例控制在合理的范围内，保证餐厅有动力继续合作，也确保骑手最终支付的价格依然比他自己进店点餐要便宜。这些从每一份盒饭中积累下来的微利，将成为驿站日常电费、饮用水和耗材补充的重要资金来源。通过这种餐饮预约系统的运营，我们把骑手的吃饭刚需、餐厅的营收需求和驿站的运营成本结合在了一起，利用数字化手段让三方都获益，从而确保了驿站在公益服务上的长期生命力。此外，小程序也是我们收集意见反馈的直接通道。骑手对驿站服务的满意度、对微利产品价格的意见，都可以直接反映。这种基于大数据的管理模式，让驿站的运营变得有据可依，能够根据不同商圈、不同时间段的数据，动态调整物资储备和安排。通过这一套数字化的闭环，骑点驿站有望成为一张覆盖城市核心商圈的智能服务网。",image: "数字服务.png" }
-        };
+        function filterListings() {
+            const districtVal = document.getElementById('districtFilter').value;
+            const sortVal = document.getElementById('sortBy').value;
+            let filtered = [...listingsData];
+            if (districtVal === '主城区') filtered = filtered.filter(f => f.area === '主城区');
+            else if (districtVal === '新市区') filtered = filtered.filter(f => f.area === '新市区');
+            else if (districtVal !== 'all') filtered = filtered.filter(f => f.district === districtVal);
+            if (sortVal === 'rent_asc') filtered.sort((a,b) => a.rent - b.rent);
+            if (sortVal === 'rent_desc') filtered.sort((a,b) => b.rent - a.rent);
+            if (sortVal === 'score') filtered.sort((a,b) => (b.score||0) - (a.score||0));
+            renderListings(filtered);
+        }
 
-        function showProcess(id) {
-            document.querySelectorAll('.proc-btn').forEach(btn => {
-                btn.classList.remove('museum-tab-active');
-                btn.classList.add('text-stone-400');
+        function renderGovCards() {
+            document.getElementById('govCards').innerHTML = govData.map(g => `
+                <div class="warm-card-sm p-4">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-2xl">${g.icon}</span><div><h4 class="font-bold text-sm">${g.dept}</h4></div></div>
+                    <div class="text-xs text-[#6b5a4e]"><div>📞 ${g.phone}</div><div>📍 ${g.addr}</div></div>
+                </div>`).join('');
+        }
+
+        function renderNews() {
+            document.getElementById('newsList').innerHTML = newsData.map(n => `
+                <div class="warm-card-sm p-4 flex flex-wrap gap-3 items-center">
+                    <span class="${n.tagClass} tag-primary text-[10px]">${n.category}</span>
+                    <div class="flex-1"><h4 class="font-bold text-sm">${n.title}</h4></div>
+                    <span class="text-[10px] text-[#b8a590]">${n.date}</span>
+                </div>`).join('');
+        }
+
+        function initEvalCharts() {
+            const ctx1 = document.getElementById('weightBarChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: weightData.map(w => w.name),
+                    datasets: [{
+                        data: weightData.map(w => w.weight),
+                        backgroundColor: weightData.map(w => w.color),
+                        borderRadius: 6,
+                    }]
+                },
+                options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
             });
-            document.getElementById(`proc-${id}`).classList.add('museum-tab-active');
-            const data = processData[id];
-            const container = document.getElementById('process-content');
-            container.style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('step-title').innerText = data.title;
-                document.getElementById('step-desc').innerText = data.desc;
-                document.getElementById('step-image').src = data.image;
-                document.getElementById('step-image').className = "w-full h-auto max-h-[500px] object-cover process-img";
-                document.getElementById('step-details').innerHTML = '';
-                container.style.opacity = '1';
-            }, 300);
+            const ctx2 = document.getElementById('samplePieChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['白领新市民','应届毕业生','服务业从业者','自由职业','其他'],
+                    datasets: [{
+                        data: [42, 25, 18, 10, 5],
+                        backgroundColor: ['#c67b3d','#5b3a29','#7d5540','#e8a362','#b89585'],
+                    }]
+                },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+            });
         }
 
-        // 初始化默认显示
-        window.onload = function() {
-            switchEra('start');
-            showProcess(1);
-            // 可预选一个省份
-            // loadProvince('北京市');
-        };
+        function renderScoreInputs() {
+            const container = document.getElementById('scoreInputs');
+            container.innerHTML = scoreIndicators.map(ind => {
+                const isRentOrCommute = (ind.id === 'rent' || ind.id === 'commute');
+                const weightVal = currentWeights[ind.id].toFixed(1);
+                let inputHtml = '';
+                if (isRentOrCommute) {
+                    inputHtml = `<span class="text-xs font-bold text-[#5b3a29]">自动计算</span>
+                                 <span class="score-bubble mid" id="bubble_${ind.id}">${currentScores[ind.id]}</span>`;
+                } else {
+                    inputHtml = `<input type="range" id="slider_${ind.id}" min="1" max="10" value="${currentScores[ind.id]}" step="1" class="score-slider w-24" oninput="syncScore('${ind.id}', this.value)">
+                                 <span class="score-bubble mid" id="bubble_${ind.id}">${currentScores[ind.id]}</span>`;
+                }
+                const weightDisplay = weightCustom
+                    ? `<input type="number" value="${weightVal}" min="0" max="100" step="0.1" class="w-16 text-xs border rounded px-1" onchange="updateWeight('${ind.id}', this.value)">`
+                    : `<span class="text-[10px] text-[#b8a590]">${weightVal}%</span>`;
+                return `<div class="flex items-center justify-between py-1">
+                    <div class="flex items-center gap-2"><span>${ind.icon}</span><span class="text-xs font-bold">${ind.name}</span></div>
+                    <div class="flex items-center gap-2">${weightDisplay}${inputHtml}</div>
+                </div>`;
+            }).join('');
+            // 控制权重提示显示
+            const hint = document.getElementById('weightHint');
+            if (hint) hint.style.display = weightCustom ? 'block' : 'none';
+            document.getElementById('weightSumDisplay').classList.toggle('hidden', !weightCustom);
+            document.getElementById('resetWeightBtn').classList.toggle('hidden', !weightCustom);
+            updateWeightSum();
+        }
+
+        function syncScore(id, value) {
+            const num = parseInt(value);
+            currentScores[id] = num;
+            const bubble = document.getElementById('bubble_'+id);
+            if(bubble) { bubble.textContent=num; bubble.className='score-bubble '+(num<=3?'low':num<=7?'mid':'high'); }
+            if(id==='rent') document.getElementById('rentInput').value = '';
+            if(id==='commute') document.getElementById('commuteInput').value = '';
+        }
+
+        function autoMapRent() {
+            const rent = parseInt(document.getElementById('rentInput').value);
+            if(isNaN(rent)) return;
+            let score = 10;
+            if(rent>10000) score=1; else if(rent>8000) score=2; else if(rent>6000) score=4; else if(rent>4000) score=6;
+            else if(rent>2500) score=8; else score=10;
+            currentScores.rent = score;
+            const bubble = document.getElementById('bubble_rent'); if(bubble){ bubble.textContent=score; bubble.className='score-bubble '+(score<=3?'low':score<=7?'mid':'high'); }
+        }
+        function autoMapCommute() {
+            const time = parseInt(document.getElementById('commuteInput').value);
+            if(isNaN(time)) return;
+            let score = 10;
+            if(time>90) score=1; else if(time>60) score=3; else if(time>40) score=5; else if(time>20) score=7; else score=9;
+            currentScores.commute = score;
+            const bubble = document.getElementById('bubble_commute'); if(bubble){ bubble.textContent=score; bubble.className='score-bubble '+(score<=3?'low':score<=7?'mid':'high'); }
+        }
+
+        function toggleCustomWeight() {
+            weightCustom = document.getElementById('customWeightToggle').checked;
+            renderScoreInputs();
+        }
+        function updateWeight(id, val) {
+            const w = parseFloat(val);
+            if(isNaN(w)) return;
+            currentWeights[id] = Math.max(0, w);
+            updateWeightSum();
+        }
+        function updateWeightSum() {
+            const sum = Object.values(currentWeights).reduce((a,b)=>a+b,0);
+            document.getElementById('weightSumVal').textContent = sum.toFixed(1);
+        }
+        function resetWeights() {
+            scoreIndicators.forEach(ind => currentWeights[ind.id] = ind.weight);
+            // 修复：重置权重时同时关闭自定义开关
+            weightCustom = false;
+            document.getElementById('customWeightToggle').checked = false;
+            renderScoreInputs();
+        }
+
+        function calculateScore() {
+            document.getElementById('scoringEmpty').classList.add('hidden');
+            document.getElementById('scoringResultContent').classList.remove('hidden');
+            const weights = {...currentWeights};
+            const sumW = Object.values(weights).reduce((a,b)=>a+b,0) || 100;
+            let total = 0;
+            const dimScores = {};
+            scoreIndicators.forEach(ind => {
+                const score = currentScores[ind.id]||5;
+                const norm = (score/10)*100;
+                dimScores[ind.name] = norm;
+                total += norm * (weights[ind.id] / sumW);
+            });
+            const final = Math.round(total);
+            let grade, gradeClass, stars;
+            if(final>=85){ grade='S级·优质'; gradeClass='grade-s'; stars='⭐⭐⭐⭐⭐'; }
+            else if(final>=75){ grade='A级·良好'; gradeClass='grade-a'; stars='⭐⭐⭐⭐'; }
+            else if(final>=60){ grade='B级·中等'; gradeClass='grade-b'; stars='⭐⭐⭐'; }
+            else if(final>=45){ grade='C级·一般'; gradeClass='grade-c'; stars='⭐⭐'; }
+            else { grade='D级·需改善'; gradeClass='grade-d'; stars='⭐'; }
+            document.getElementById('totalScoreDisplay').textContent = final;
+            const badge = document.getElementById('gradeBadge'); badge.textContent=grade; badge.className='grade-badge '+gradeClass;
+            document.getElementById('starDisplay').textContent=stars;
+            document.getElementById('gradeDesc').textContent = final>=75?'整体优异':'存在短板，建议谨慎';
+            const entries = Object.entries(dimScores).sort((a,b)=>b[1]-a[1]);
+            const top3=entries.slice(0,3), bottom3=entries.slice(-3).reverse();
+            document.getElementById('strengthWeakness').innerHTML = `
+                <p class="font-bold text-[#2d6a3f] text-[11px]">✅ 优势</p>${top3.map(([n,s])=>`<div class="flex justify-between"><span>${n}</span><span>${Math.round(s)}</span></div>`).join('')}
+                <p class="font-bold text-[#8b3a2b] text-[11px] mt-2">⚠️ 短板</p>${bottom3.map(([n,s])=>`<div class="flex justify-between"><span>${n}</span><span>${Math.round(s)}</span></div>`).join('')}`;
+            document.getElementById('adviceText').textContent = final>=75 ? '综合表现优秀，推荐。' : '建议对比周边或与房东协商。';
+            if(radarChartInstance) radarChartInstance.destroy();
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            radarChartInstance = new Chart(ctx, {
+                type:'radar', data:{ labels:Object.keys(dimScores), datasets:[
+                    { label:'房源', data:Object.values(dimScores), backgroundColor:'rgba(198,123,61,0.15)', borderColor:'#c67b3d' },
+                    { label:'平均', data:Object.keys(dimScores).map(()=>50), borderColor:'#d5c8b8', borderDash:[6,4], pointRadius:0 }
+                ]},
+                options:{ scales:{ r:{ max:100 } } }
+            });
+        }
+
+        function saveScoringToList() {
+            const name = document.getElementById('houseName').value.trim() || '未命名房源';
+            const district = document.getElementById('houseDistrict').value || '未知区域';
+            const rent = parseInt(document.getElementById('rentInput').value) || 0;
+            const rooms = '1室1厅';
+            const score = parseInt(document.getElementById('totalScoreDisplay').textContent) || 50;
+            const newItem = {
+                id: Date.now(), district, area: district.includes('浦东')||district.includes('黄浦')?'主城区':'新市区',
+                title: name, rent, rooms, areaSize:50, score, tags: ['用户添加'], desc: '用户自评房源',
+                imageEmoji:'🏠', level: score>=75?'high':score>=60?'mid':'low', imageFile:''
+            };
+            listingsData.push(newItem);
+            renderListings(listingsData);
+            alert('已添加至房源列表！');
+        }
+
+        function resetAllScores() {
+            scoreIndicators.forEach(ind => { currentScores[ind.id]=5; });
+            document.getElementById('houseName').value=''; document.getElementById('houseDistrict').value='';
+            document.getElementById('rentInput').value=''; document.getElementById('commuteInput').value='';
+            currentWeights = {}; scoreIndicators.forEach(ind=>currentWeights[ind.id]=ind.weight);
+            weightCustom = false;
+            document.getElementById('customWeightToggle').checked = false;
+            renderScoreInputs();
+            document.getElementById('scoringEmpty').classList.remove('hidden');
+            document.getElementById('scoringResultContent').classList.add('hidden');
+        }
+
+        function openAddListingModal() { document.getElementById('addListingModal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('addListingModal').classList.add('hidden'); }
+        function saveAndGoScore() {
+            const name = document.getElementById('modalName').value.trim();
+            const district = document.getElementById('modalDistrict').value;
+            const rent = document.getElementById('modalRent').value;
+            if(!name||!district||!rent) { alert('请填写名称、区域和租金'); return; }
+            document.getElementById('houseName').value = name;
+            document.getElementById('houseDistrict').value = district;
+            document.getElementById('rentInput').value = rent;
+            autoMapRent();
+            closeModal();
+            window.location.hash = '#scoring';
+        }
+        function saveListingOnly() {
+            const name = document.getElementById('modalName').value.trim()||'新房源';
+            const district = document.getElementById('modalDistrict').value||'未知区域';
+            const rent = parseInt(document.getElementById('modalRent').value)||0;
+            const areaSize = parseInt(document.getElementById('modalArea').value)||50;
+            const rooms = document.getElementById('modalRooms').value||'未填';
+            const desc = document.getElementById('modalDesc').value||'用户添加';
+            listingsData.push({
+                id:Date.now(), district, area: district.includes('浦东')||district.includes('黄浦')?'主城区':'新市区',
+                title:name, rent, rooms, areaSize, score:50, tags:['用户添加'], desc, imageEmoji:'🏠', level:'mid', imageFile:''
+            });
+            renderListings(listingsData);
+            closeModal();
+        }
+
+        function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('hidden'); }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderListings(listingsData);
+            renderGovCards();
+            renderNews();
+            renderScoreInputs();
+            initEvalCharts();
+        });
     </script>
 </body>
-
 </html>
